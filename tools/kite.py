@@ -24,6 +24,7 @@ from kiteconnect import KiteConnect
 
 from config import KITE_API_KEY, KITE_API_SECRET, BASE_DIR
 from models.stock import StockQuote, PriceHistory
+from typing import Any
 
 
 # Token storage file
@@ -286,3 +287,81 @@ def get_multiple_price_history(
             results[period] = history
 
     return results
+
+
+def get_holdings() -> list[dict[str, Any]]:
+    """
+    Get user's stock holdings from Kite.
+
+    Returns list of holdings with P&L data:
+        - tradingsymbol, exchange, isin
+        - quantity, average_price, last_price
+        - pnl, day_change, day_change_percentage
+    """
+    kite = get_kite()
+    if not kite:
+        return []
+
+    try:
+        holdings = kite.holdings()
+        return holdings if holdings else []
+    except Exception as e:
+        print(f"Error fetching holdings: {e}")
+        return []
+
+
+def get_positions() -> dict[str, list[dict[str, Any]]]:
+    """
+    Get user's current positions (net and day).
+
+    Returns dict with 'net' and 'day' position lists.
+    """
+    kite = get_kite()
+    if not kite:
+        return {"net": [], "day": []}
+
+    try:
+        positions = kite.positions()
+        return positions if positions else {"net": [], "day": []}
+    except Exception as e:
+        print(f"Error fetching positions: {e}")
+        return {"net": [], "day": []}
+
+
+def get_mf_holdings() -> list[dict[str, Any]]:
+    """
+    Get user's mutual fund holdings from Kite.
+
+    Returns list of MF holdings with:
+        - tradingsymbol, folio, fund
+        - quantity (units), average_price, last_price
+        - pnl
+    """
+    kite = get_kite()
+    if not kite:
+        return []
+
+    try:
+        mf_holdings = kite.mf_holdings()
+        return mf_holdings if mf_holdings else []
+    except Exception as e:
+        print(f"Error fetching MF holdings: {e}")
+        return []
+
+
+def get_mf_instruments() -> list[dict[str, Any]]:
+    """
+    Get list of available mutual fund instruments.
+
+    Returns list of MF instruments with scheme details.
+    """
+    kite = get_kite()
+    if not kite:
+        return []
+
+    try:
+        instruments = kite.mf_instruments()
+        return instruments if instruments else []
+    except Exception as e:
+        print(f"Error fetching MF instruments: {e}")
+        return []

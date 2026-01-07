@@ -4,6 +4,12 @@
 .env.test.local
 .env.production.local
 
+# Kite token (secrets)
+.kite_token
+
+# Cache
+cache/
+
 __pycache__/
 *.py[cod]
 *.pyo
@@ -43,6 +49,7 @@ htmlcov/
 .idea/
 .DS_Store
 Thumbs.db
+.claude/
 
 # Notebooks
 .ipynb_checkpoints

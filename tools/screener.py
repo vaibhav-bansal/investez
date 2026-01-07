@@ -58,18 +58,32 @@ def _parse_number(text: str) -> Optional[float]:
     if not text:
         return None
 
+    # Remove rupee symbol (both ₹ and Rs.)
+    text = text.replace("₹", "").replace("Rs.", "").replace("Rs", "")
+
     # Remove commas, whitespace, and common suffixes
     text = text.strip().replace(",", "").replace(" ", "")
 
-    # Handle Cr (Crores) suffix
+    # Handle Cr (Crores) suffix - 1 Cr = 10,000,000
+    # Handle both "Cr" and "Cr." variations
     multiplier = 1
-    if text.endswith("Cr"):
-        text = text[:-2]
+    if text.endswith("Cr") or text.endswith("Cr."):
+        # Remove "Cr" or "Cr." suffix
+        if text.endswith("Cr."):
+            text = text[:-3]
+        else:
+            text = text[:-2]
+        multiplier = 10000000
     elif text.endswith("%"):
         text = text[:-1]
 
+    # Extract first number from string (handles cases like "21,35,358Cr.")
+    match = re.search(r'-?\d+\.?\d*', text)
+    if not match:
+        return None
+
     try:
-        return float(text)
+        return float(match.group()) * multiplier
     except ValueError:
         return None
 
@@ -80,9 +94,13 @@ def _extract_ratio(soup: BeautifulSoup, ratio_name: str) -> Optional[float]:
     ratios_list = soup.select("#top-ratios li")
     for li in ratios_list:
         name_elem = li.select_one(".name")
-        value_elem = li.select_one(".value, .number")
-        if name_elem and value_elem:
-            if ratio_name.lower() in name_elem.get_text().lower():
+        if name_elem and ratio_name.lower() in name_elem.get_text().lower():
+            # Try to get the number from the nested .number span first, then .value
+            number_elem = li.select_one(".number")
+            value_elem = li.select_one(".value")
+            if number_elem:
+                return _parse_number(number_elem.get_text())
+            elif value_elem:
                 return _parse_number(value_elem.get_text())
     return None
 
@@ -137,29 +155,52 @@ def get_stock_fundamentals(
     company_info = soup.select_one(".company-info")
     if company_info:
         info_text = company_info.get_text()
-        # Sector info is usually in the company description
+        # Try to find sector and industry patterns
+        lines = info_text.split("\n")
+        for i, line in enumerate(lines):
+            line = line.strip()
+            if "Sector" in line or "sector" in line:
+                if i + 1 < len(lines):
+                    sector = lines[i + 1].strip()
+            elif "Industry" in line or "industry" in line:
+                if i + 1 < len(lines):
+                    industry = lines[i + 1].strip()
 
-    # Market cap
+    # Also try extracting from the page content
+    if not sector:
+        sector_elem = soup.select_one(".company-info a[href*='/sector/']")
+        if sector_elem:
+            sector = sector_elem.get_text().strip()
+    if not industry:
+        industry_elem = soup.select_one(".company-info a[href*='/industry/']")
+        if industry_elem:
+            industry = industry_elem.get_text().strip()
+
+    # Market cap (in crores)
     market_cap = _extract_ratio(soup, "Market Cap")
     market_cap_category = None
     if market_cap:
-        if market_cap >= 20000:  # 20,000 Cr+
+        # market_cap is already in crores
+        if market_cap >= 100000:  # 100,000 Cr+ (Large cap)
             market_cap_category = "Large Cap"
-        elif market_cap >= 5000:  # 5,000 Cr+
+        elif market_cap >= 25000:  # 25,000 Cr+ (Mid cap)
             market_cap_category = "Mid Cap"
         else:
             market_cap_category = "Small Cap"
 
+    # Get current price for P/B calculation
+    current_price = _extract_ratio(soup, "Current Price")
+    book_value = _extract_ratio(soup, "Book Value")
+
     # Valuation ratios
     pe_ratio = _extract_ratio(soup, "Stock P/E")
-    pb_ratio = _extract_ratio(soup, "Book Value")
-    if pb_ratio:
-        # Screener shows book value, need to calculate P/B
-        current_price = _extract_ratio(soup, "Current Price")
-        if current_price and pb_ratio > 0:
-            pb_ratio = round(current_price / pb_ratio, 2)
-        else:
-            pb_ratio = None
+
+    # Calculate P/B from current price and book value
+    pb_ratio = None
+    if current_price and book_value and book_value > 0:
+        pb_ratio = round(current_price / book_value, 2)
+
+    ev_ebitda = _extract_ratio(soup, "EV/Ebitda")
 
     # Profitability
     roe = _extract_ratio(soup, "ROE")
@@ -167,37 +208,89 @@ def get_stock_fundamentals(
 
     # Financial health
     debt_to_equity = _extract_ratio(soup, "Debt to equity")
+    current_ratio = _extract_ratio(soup, "Current Ratio")
 
     # Dividend
     dividend_yield = _extract_ratio(soup, "Dividend Yield")
 
     # Shareholding - look in shareholding section
     promoter_holding = None
+    fii_holding = None
+    dii_holding = None
     shareholding_section = soup.select_one("#shareholding")
     if shareholding_section:
         for row in shareholding_section.select("tr"):
             cells = row.select("td")
-            if cells and "Promoters" in row.get_text():
+            if not cells:
+                continue
+            row_text = row.get_text()
+            if "Promoters" in row_text or "Promoter" in row_text:
                 # Get the most recent quarter's value (usually last cell)
                 for cell in reversed(cells[1:]):
                     val = _parse_number(cell.get_text())
                     if val is not None:
                         promoter_holding = val
                         break
+            elif "FII" in row_text:
+                for cell in reversed(cells[1:]):
+                    val = _parse_number(cell.get_text())
+                    if val is not None:
+                        fii_holding = val
+                        break
+            elif ("DII" in row_text) or ("Domestic" in row_text):
+                for cell in reversed(cells[1:]):
+                    val = _parse_number(cell.get_text())
+                    if val is not None:
+                        dii_holding = val
+                        break
 
-    # Extract industry PE from peers section if available
+    # Growth - look for sales and profit growth in the ratios/tables
+    revenue_growth = _extract_ratio(soup, "Sales Growth") or _extract_ratio(soup, "Revenue Growth")
+    profit_growth = _extract_ratio(soup, "Profit Growth") or _extract_ratio(soup, "PAT Growth")
+
+    # If not found in top ratios, look in ranges-table for compounded growth
+    # The structure is: <th>Compounded Sales Growth</th> followed by <table class="ranges-table">
+    if revenue_growth is None or profit_growth is None:
+        # Find all th elements containing "Growth" - these are the section headers
+        growth_ths = soup.find_all("th", string=lambda t: t and "Growth" in t and "Compounded" in t)
+        for th in growth_ths:
+            th_text = th.get_text().strip()
+            # Find the next ranges-table after this th
+            next_table = th.find_next("table", class_="ranges-table")
+            if next_table:
+                # Get the 5 Years value (most commonly used)
+                rows = next_table.find_all("tr")
+                for row in rows:
+                    cells = row.find_all("td")
+                    if len(cells) >= 2:
+                        period = cells[0].get_text().strip()
+                        value_text = cells[1].get_text().strip()
+
+                        # Prefer 5 Years data
+                        if "5 Years" in period or "5 years" in period:
+                            if "Sales" in th_text and revenue_growth is None:
+                                revenue_growth = _parse_number(value_text)
+                            elif "Profit" in th_text and profit_growth is None:
+                                profit_growth = _parse_number(value_text)
+                                break  # Found what we need, stop processing this table
+
+    # Extract industry PE and PB from peers section if available
     industry_pe = None
+    industry_pb = None
     peers_section = soup.select_one("#peers")
     if peers_section:
         median_row = peers_section.select_one("tr.median")
         if median_row:
             cells = median_row.select("td")
-            # PE is typically in a specific column
-            for i, cell in enumerate(cells):
-                if i > 0:  # Skip name column
-                    val = _parse_number(cell.get_text())
-                    if val and 0 < val < 1000:  # Reasonable PE range
+            # Try to find PE and PB by cell content
+            for cell in cells:
+                cell_text = cell.get_text().strip()
+                val = _parse_number(cell_text)
+                if val and 0 < val < 1000:  # Reasonable PE/PB range
+                    if industry_pe is None:
                         industry_pe = val
+                    elif industry_pb is None:
+                        industry_pb = val
                         break
 
     fundamentals = StockFundamentals(
@@ -209,12 +302,19 @@ def get_stock_fundamentals(
         market_cap_category=market_cap_category,
         pe_ratio=pe_ratio,
         pb_ratio=pb_ratio,
+        ev_ebitda=ev_ebitda,
         industry_pe=industry_pe,
+        industry_pb=industry_pb,
         roe=roe,
         roce=roce,
         debt_to_equity=debt_to_equity,
+        current_ratio=current_ratio,
+        revenue_growth=revenue_growth,
+        profit_growth=profit_growth,
         dividend_yield=dividend_yield,
         promoter_holding=promoter_holding,
+        fii_holding=fii_holding,
+        dii_holding=dii_holding,
         fetched_at=datetime.now(),
         source="screener.in"
     )

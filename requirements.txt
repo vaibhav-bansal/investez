@@ -13,5 +13,12 @@ kiteconnect>=5.0.0
 # CLI
 click>=8.1.0
 
+# Web API
+flask>=3.0.0
+flask-cors>=4.0.0
+
 # Utilities
 pydantic>=2.5.0
+
+# Testing
+pytest>=8.0.0
