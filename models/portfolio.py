@@ -17,8 +17,6 @@ class Holding(BaseModel):
     pnl_percent: float
     day_change: float
     day_change_percent: float
-    weight: float  # % of total portfolio
-    sector: Optional[str] = None
     market_cap_category: Optional[str] = None
 
 
@@ -35,7 +33,7 @@ class MFHolding(BaseModel):
     invested: float
     pnl: float
     pnl_percent: float
-    weight: float
+    market_cap_category: Optional[str] = None
 
 
 class PortfolioSummary(BaseModel):
@@ -48,14 +46,19 @@ class PortfolioSummary(BaseModel):
     day_pnl_percent: float
     stocks_value: float
     mf_value: float
+    stocks_invested: float
+    mf_invested: float
+    stocks_pnl: float
+    mf_pnl: float
+    stocks_day_change: float
+    mf_day_change: float
     holdings_count: int
     mf_count: int
 
 
 class AllocationBreakdown(BaseModel):
     """Allocation breakdown for charts."""
-    sector: dict[str, float]  # sector_name -> percentage
-    market_cap: dict[str, float]  # Large/Mid/Small -> percentage
+    market_cap: dict[str, float]  # Large/Mid/Small/Multi Cap -> percentage
     asset_type: dict[str, float]  # Stocks/MF -> percentage
 
 

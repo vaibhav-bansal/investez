@@ -3,6 +3,7 @@ import type { AllocationBreakdown } from '../../types/portfolio'
 
 interface Props {
   allocation: AllocationBreakdown
+  totalValue: number
 }
 
 const COLORS = [
@@ -13,12 +14,27 @@ const COLORS = [
 interface ChartData {
   name: string
   value: number
+  amount: number
 }
 
-function toChartData(data: Record<string, number>): ChartData[] {
+function toChartData(data: Record<string, number>, totalValue: number): ChartData[] {
   return Object.entries(data)
-    .map(([name, value]) => ({ name, value }))
+    .map(([name, value]) => ({
+      name,
+      value,
+      amount: (value / 100) * totalValue,
+    }))
     .sort((a, b) => b.value - a.value)
+}
+
+function formatAmount(amount: number): string {
+  if (amount >= 10000000) {
+    return `₹${(amount / 10000000).toFixed(2)} Cr`
+  }
+  if (amount >= 100000) {
+    return `₹${(amount / 100000).toFixed(2)} L`
+  }
+  return `₹${amount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`
 }
 
 interface PieChartCardProps {
@@ -52,7 +68,10 @@ function PieChartCard({ title, data }: PieChartCardProps) {
               ))}
             </Pie>
             <Tooltip
-              formatter={(value: number) => `${value.toFixed(2)}%`}
+              formatter={(value: number, name: string, props: { payload: ChartData }) => {
+                const amount = props.payload.amount
+                return `${formatAmount(amount)} (${value.toFixed(1)}%)`
+              }}
             />
             <Legend />
           </PieChart>
@@ -62,14 +81,12 @@ function PieChartCard({ title, data }: PieChartCardProps) {
   )
 }
 
-export default function AllocationCharts({ allocation }: Props) {
-  const sectorData = toChartData(allocation.sector)
-  const marketCapData = toChartData(allocation.market_cap)
-  const assetData = toChartData(allocation.asset_type)
+export default function AllocationCharts({ allocation, totalValue }: Props) {
+  const marketCapData = toChartData(allocation.market_cap, totalValue)
+  const assetData = toChartData(allocation.asset_type, totalValue)
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-      <PieChartCard title="By Sector" data={sectorData} />
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       <PieChartCard title="By Market Cap" data={marketCapData} />
       <PieChartCard title="By Asset Type" data={assetData} />
     </div>

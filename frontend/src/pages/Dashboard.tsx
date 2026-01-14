@@ -31,7 +31,7 @@ export default function Dashboard() {
     <div className="space-y-6">
       <PortfolioSummary summary={portfolio.summary} />
 
-      <AllocationCharts allocation={portfolio.allocation} />
+      <AllocationCharts allocation={portfolio.allocation} totalValue={portfolio.summary.total_value} />
 
       <div className="grid grid-cols-1 gap-6">
         <HoldingsTable holdings={portfolio.holdings} />

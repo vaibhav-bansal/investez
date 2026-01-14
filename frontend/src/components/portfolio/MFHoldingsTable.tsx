@@ -5,7 +5,7 @@ interface Props {
   holdings: MFHolding[]
 }
 
-type SortKey = 'scheme_name' | 'value' | 'pnl' | 'pnl_percent' | 'weight'
+type SortKey = 'scheme_name' | 'value' | 'pnl' | 'pnl_percent'
 
 function formatCurrency(value: number): string {
   return value.toLocaleString('en-IN', {
@@ -69,7 +69,6 @@ export default function MFHoldingsTable({ holdings }: Props) {
               <SortHeader label="Value" keyName="value" />
               <SortHeader label="P&L" keyName="pnl" />
               <SortHeader label="P&L %" keyName="pnl_percent" />
-              <SortHeader label="Weight" keyName="weight" />
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
@@ -88,7 +87,6 @@ export default function MFHoldingsTable({ holdings }: Props) {
                 <td className={`px-4 py-3 ${h.pnl_percent >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                   {h.pnl_percent >= 0 ? '+' : ''}{h.pnl_percent.toFixed(2)}%
                 </td>
-                <td className="px-4 py-3 text-gray-600">{h.weight.toFixed(1)}%</td>
               </tr>
             ))}
           </tbody>

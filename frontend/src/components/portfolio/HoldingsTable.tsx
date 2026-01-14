@@ -5,7 +5,7 @@ interface Props {
   holdings: Holding[]
 }
 
-type SortKey = 'symbol' | 'value' | 'pnl' | 'pnl_percent' | 'day_change_percent' | 'weight'
+type SortKey = 'symbol' | 'value' | 'pnl' | 'pnl_percent' | 'day_change_percent'
 
 function formatCurrency(value: number): string {
   return value.toLocaleString('en-IN', {
@@ -70,10 +70,6 @@ export default function HoldingsTable({ holdings }: Props) {
               <SortHeader label="P&L" keyName="pnl" />
               <SortHeader label="P&L %" keyName="pnl_percent" />
               <SortHeader label="Day %" keyName="day_change_percent" />
-              <SortHeader label="Weight" keyName="weight" />
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Sector
-              </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
@@ -93,8 +89,6 @@ export default function HoldingsTable({ holdings }: Props) {
                 <td className={`px-4 py-3 ${h.day_change_percent >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                   {h.day_change_percent >= 0 ? '+' : ''}{h.day_change_percent.toFixed(2)}%
                 </td>
-                <td className="px-4 py-3 text-gray-600">{h.weight.toFixed(1)}%</td>
-                <td className="px-4 py-3 text-gray-500 text-sm">{h.sector || '-'}</td>
               </tr>
             ))}
           </tbody>

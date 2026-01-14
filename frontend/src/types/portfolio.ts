@@ -11,8 +11,6 @@ export interface Holding {
   pnl_percent: number
   day_change: number
   day_change_percent: number
-  weight: number
-  sector: string | null
   market_cap_category: string | null
 }
 
@@ -28,7 +26,7 @@ export interface MFHolding {
   invested: number
   pnl: number
   pnl_percent: number
-  weight: number
+  market_cap_category: string | null
 }
 
 export interface PortfolioSummary {
@@ -40,12 +38,17 @@ export interface PortfolioSummary {
   day_pnl_percent: number
   stocks_value: number
   mf_value: number
+  stocks_invested: number
+  mf_invested: number
+  stocks_pnl: number
+  mf_pnl: number
+  stocks_day_change: number
+  mf_day_change: number
   holdings_count: number
   mf_count: number
 }
 
 export interface AllocationBreakdown {
-  sector: Record<string, number>
   market_cap: Record<string, number>
   asset_type: Record<string, number>
 }

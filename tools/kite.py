@@ -172,8 +172,8 @@ def get_quote(symbol: str, exchange: str = "NSE") -> Optional[StockQuote]:
             change=q.get("net_change", 0),
             change_percent=(q.get("net_change", 0) / ohlc.get("close", 1)) * 100
                 if ohlc.get("close") else 0,
-            high_52w=ohlc.get("high"),  # Note: This is day high, not 52W
-            low_52w=ohlc.get("low"),    # Note: This is day low, not 52W
+            day_high=ohlc.get("high"),
+            day_low=ohlc.get("low"),
             volume=q.get("volume"),
             timestamp=datetime.now()
         )

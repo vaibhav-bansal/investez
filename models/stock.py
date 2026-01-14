@@ -9,8 +9,8 @@ class StockQuote(BaseModel):
     current_price: float
     change: float
     change_percent: float
-    high_52w: Optional[float] = None
-    low_52w: Optional[float] = None
+    day_high: Optional[float] = None
+    day_low: Optional[float] = None
     volume: Optional[int] = None
     timestamp: datetime
 

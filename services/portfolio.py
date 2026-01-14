@@ -22,7 +22,7 @@ from models.portfolio import (
 )
 
 
-def _enrich_holding(raw: dict, total_value: float) -> Holding:
+def _enrich_holding(raw: dict) -> Holding:
     """Convert raw Kite holding to enriched Holding model."""
     symbol = raw.get("tradingsymbol", "")
     quantity = raw.get("quantity", 0)
@@ -33,15 +33,12 @@ def _enrich_holding(raw: dict, total_value: float) -> Holding:
     invested = quantity * avg_price
     pnl = raw.get("pnl", value - invested)
     pnl_percent = (pnl / invested * 100) if invested > 0 else 0
-    weight = (value / total_value * 100) if total_value > 0 else 0
 
-    # Get sector and market cap from Screener (cached)
-    sector = None
+    # Get market cap from Screener (cached)
     market_cap_category = None
     try:
         fundamentals = get_stock_fundamentals(symbol)
         if fundamentals:
-            sector = fundamentals.sector
             market_cap_category = fundamentals.market_cap_category
     except Exception:
         pass
@@ -59,13 +56,38 @@ def _enrich_holding(raw: dict, total_value: float) -> Holding:
         pnl_percent=round(pnl_percent, 2),
         day_change=raw.get("day_change", 0),
         day_change_percent=raw.get("day_change_percentage", 0),
-        weight=round(weight, 2),
-        sector=sector,
         market_cap_category=market_cap_category,
     )
 
 
-def _process_mf_holding(raw: dict, total_value: float) -> MFHolding:
+def _parse_mf_market_cap(scheme_name: str) -> str:
+    """
+    Parse market cap category from mutual fund scheme name.
+
+    Returns: 'Large Cap', 'Mid Cap', 'Small Cap', or 'Multi Cap'
+    Defaults to 'Multi Cap' for ELSS and other uncategorized funds.
+    """
+    name_upper = scheme_name.upper()
+
+    # Check for specific categories first (order matters)
+    if "SMALL CAP" in name_upper or "SMALLCAP" in name_upper:
+        return "Small Cap"
+    if "MID CAP" in name_upper or "MIDCAP" in name_upper:
+        # Check if it's "Large and Mid Cap" type
+        if "LARGE" in name_upper:
+            return "Multi Cap"
+        return "Mid Cap"
+    if "LARGE CAP" in name_upper or "LARGECAP" in name_upper:
+        # Check if combined with mid cap
+        if "MID" in name_upper:
+            return "Multi Cap"
+        return "Large Cap"
+
+    # Default to Multi Cap (ELSS, Flexi Cap, uncategorized funds)
+    return "Multi Cap"
+
+
+def _process_mf_holding(raw: dict) -> MFHolding:
     """Convert raw Kite MF holding to MFHolding model."""
     units = raw.get("quantity", 0)
     avg_nav = raw.get("average_price", 0)
@@ -73,13 +95,16 @@ def _process_mf_holding(raw: dict, total_value: float) -> MFHolding:
 
     value = units * current_nav
     invested = units * avg_nav
-    pnl = raw.get("pnl", value - invested)
+    # Always calculate P&L from value - invested (don't trust raw pnl for MF)
+    pnl = value - invested
     pnl_percent = (pnl / invested * 100) if invested > 0 else 0
-    weight = (value / total_value * 100) if total_value > 0 else 0
+
+    scheme_name = raw.get("fund", raw.get("tradingsymbol", ""))
+    market_cap_category = _parse_mf_market_cap(scheme_name)
 
     return MFHolding(
         scheme_code=raw.get("tradingsymbol", ""),
-        scheme_name=raw.get("fund", raw.get("tradingsymbol", "")),
+        scheme_name=scheme_name,
         fund_house=None,
         folio=raw.get("folio"),
         units=units,
@@ -89,7 +114,7 @@ def _process_mf_holding(raw: dict, total_value: float) -> MFHolding:
         invested=round(invested, 2),
         pnl=round(pnl, 2),
         pnl_percent=round(pnl_percent, 2),
-        weight=round(weight, 2),
+        market_cap_category=market_cap_category,
     )
 
 
@@ -99,25 +124,21 @@ def _calculate_allocation(
     stocks_value: float,
     mf_value: float,
 ) -> AllocationBreakdown:
-    """Calculate sector, market cap, and asset type allocations."""
+    """Calculate market cap and asset type allocations."""
     total = stocks_value + mf_value
 
-    # Sector allocation (stocks only)
-    sector_values: dict[str, float] = defaultdict(float)
-    for h in holdings:
-        sector = h.sector or "Unknown"
-        sector_values[sector] += h.value
-
-    sector_pct = {
-        k: round(v / total * 100, 2) if total > 0 else 0
-        for k, v in sector_values.items()
-    }
-
-    # Market cap allocation (stocks only)
+    # Market cap allocation (stocks + mutual funds)
     mcap_values: dict[str, float] = defaultdict(float)
+
+    # Add stock holdings
     for h in holdings:
         mcap = h.market_cap_category or "Unknown"
         mcap_values[mcap] += h.value
+
+    # Add mutual fund holdings
+    for mf in mf_holdings:
+        mcap = mf.market_cap_category or "Unknown"
+        mcap_values[mcap] += mf.value
 
     mcap_pct = {
         k: round(v / total * 100, 2) if total > 0 else 0
@@ -131,7 +152,6 @@ def _calculate_allocation(
         asset_pct["Mutual Funds"] = round(mf_value / total * 100, 2)
 
     return AllocationBreakdown(
-        sector=sector_pct,
         market_cap=mcap_pct,
         asset_type=asset_pct,
     )
@@ -150,7 +170,7 @@ def get_portfolio() -> Optional[Portfolio]:
     if not raw_holdings and not raw_mf:
         return None
 
-    # Calculate total values first (for weight calculation)
+    # Calculate total values for summary and allocation
     stocks_value = sum(
         h.get("quantity", 0) * h.get("last_price", 0)
         for h in raw_holdings
@@ -162,15 +182,22 @@ def get_portfolio() -> Optional[Portfolio]:
     total_value = stocks_value + mf_value
 
     # Process holdings
-    holdings = [_enrich_holding(h, total_value) for h in raw_holdings]
-    mf_holdings = [_process_mf_holding(m, total_value) for m in raw_mf]
+    holdings = [_enrich_holding(h) for h in raw_holdings]
+    mf_holdings = [_process_mf_holding(m) for m in raw_mf]
 
     # Calculate totals
-    total_invested = sum(h.invested for h in holdings) + sum(m.invested for m in mf_holdings)
-    total_pnl = sum(h.pnl for h in holdings) + sum(m.pnl for m in mf_holdings)
+    stocks_invested = sum(h.invested for h in holdings)
+    mf_invested = sum(m.invested for m in mf_holdings)
+    total_invested = stocks_invested + mf_invested
+
+    stocks_pnl = sum(h.pnl for h in holdings)
+    mf_pnl = sum(m.pnl for m in mf_holdings)
+    total_pnl = stocks_pnl + mf_pnl
     total_pnl_percent = (total_pnl / total_invested * 100) if total_invested > 0 else 0
 
-    day_pnl = sum(h.day_change * h.quantity for h in holdings)
+    stocks_day_change = sum(h.day_change * h.quantity for h in holdings)
+    mf_day_change = 0.0  # MF day change not available from Kite API
+    day_pnl = stocks_day_change + mf_day_change
     day_pnl_percent = (day_pnl / total_value * 100) if total_value > 0 else 0
 
     summary = PortfolioSummary(
@@ -182,6 +209,12 @@ def get_portfolio() -> Optional[Portfolio]:
         day_pnl_percent=round(day_pnl_percent, 2),
         stocks_value=round(stocks_value, 2),
         mf_value=round(mf_value, 2),
+        stocks_invested=round(stocks_invested, 2),
+        mf_invested=round(mf_invested, 2),
+        stocks_pnl=round(stocks_pnl, 2),
+        mf_pnl=round(mf_pnl, 2),
+        stocks_day_change=round(stocks_day_change, 2),
+        mf_day_change=round(mf_day_change, 2),
         holdings_count=len(holdings),
         mf_count=len(mf_holdings),
     )
@@ -203,12 +236,7 @@ def get_holdings_only() -> list[Holding]:
     if not raw_holdings:
         return []
 
-    total_value = sum(
-        h.get("quantity", 0) * h.get("last_price", 0)
-        for h in raw_holdings
-    )
-
-    return [_enrich_holding(h, total_value) for h in raw_holdings]
+    return [_enrich_holding(h) for h in raw_holdings]
 
 
 def get_mf_only() -> list[MFHolding]:
@@ -217,9 +245,4 @@ def get_mf_only() -> list[MFHolding]:
     if not raw_mf:
         return []
 
-    total_value = sum(
-        m.get("quantity", 0) * m.get("last_price", 0)
-        for m in raw_mf
-    )
-
-    return [_process_mf_holding(m, total_value) for m in raw_mf]
+    return [_process_mf_holding(m) for m in raw_mf]
