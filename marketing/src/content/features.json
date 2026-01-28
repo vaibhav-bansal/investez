@@ -1,0 +1,28 @@
+{
+  "features": [
+    {
+      "id": "ai-research",
+      "title": "AI-Powered Research",
+      "description": "Get plain-language analysis of any Indian stock or mutual fund using advanced AI",
+      "icon": "chart-bar"
+    },
+    {
+      "id": "portfolio-analysis",
+      "title": "Portfolio Analysis",
+      "description": "Connect your Zerodha account for instant insights into your holdings",
+      "icon": "briefcase"
+    },
+    {
+      "id": "real-time-data",
+      "title": "Real-Time Data",
+      "description": "Access live market data, fundamentals, and news from trusted sources",
+      "icon": "trending-up"
+    },
+    {
+      "id": "conversational",
+      "title": "Conversational Interface",
+      "description": "Ask questions in plain language and get easy-to-understand answers",
+      "icon": "message-circle"
+    }
+  ]
+}
