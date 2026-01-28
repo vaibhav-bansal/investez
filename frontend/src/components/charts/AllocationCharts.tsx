@@ -68,9 +68,12 @@ function PieChartCard({ title, data }: PieChartCardProps) {
               ))}
             </Pie>
             <Tooltip
-              formatter={(value: number, name: string, props: { payload: ChartData }) => {
-                const amount = props.payload.amount
-                return `${formatAmount(amount)} (${value.toFixed(1)}%)`
+              formatter={(value: number, _name, props) => {
+                const amount = (props as any)?.payload?.amount
+                if (typeof amount === 'number') {
+                  return `${formatAmount(amount)} (${value.toFixed(1)}%)`
+                }
+                return `${value.toFixed(1)}%`
               }}
             />
             <Legend />
