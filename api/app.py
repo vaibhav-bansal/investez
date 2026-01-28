@@ -16,8 +16,24 @@ def create_app() -> Flask:
     """Create and configure Flask app."""
     app = Flask(__name__)
 
-    # Enable CORS for React dev server
-    CORS(app, origins=["http://localhost:3000"])
+    # Enable CORS for frontend domains
+    import os
+    allowed_origins = [
+        "http://localhost:3000",
+        "http://localhost:5173",
+        "http://localhost:5174",
+    ]
+
+    # Add Railway frontend domains from environment
+    dashboard_url = os.getenv("DASHBOARD_URL")
+    marketing_url = os.getenv("MARKETING_URL")
+
+    if dashboard_url:
+        allowed_origins.append(dashboard_url)
+    if marketing_url:
+        allowed_origins.append(marketing_url)
+
+    CORS(app, origins=allowed_origins, supports_credentials=True)
 
     # Register blueprints
     from api.routes.portfolio import portfolio_bp

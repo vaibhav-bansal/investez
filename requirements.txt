@@ -16,6 +16,7 @@ click>=8.1.0
 # Web API
 flask>=3.0.0
 flask-cors>=4.0.0
+gunicorn>=21.2.0
 
 # Utilities
 pydantic>=2.5.0

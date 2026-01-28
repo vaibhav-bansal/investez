@@ -2,7 +2,7 @@ import axios from 'axios'
 import type { ApiResponse, Portfolio } from '../types/portfolio'
 
 const api = axios.create({
-  baseURL: '/api',
+  baseURL: import.meta.env.VITE_API_URL || '/api',
 })
 
 export async function fetchAuthStatus(): Promise<ApiResponse<{ authenticated: boolean }>> {
