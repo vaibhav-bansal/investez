@@ -1,0 +1,15 @@
+# Security Contact Information for InvestEz
+# https://securitytxt.org/
+
+Contact: mailto:security@investez.vercel.app
+Contact: https://investez.vercel.app/#about
+Expires: 2027-01-28T00:00:00.000Z
+Preferred-Languages: en
+Canonical: https://investez.vercel.app/.well-known/security.txt
+
+# Security Policy
+Policy: https://investez.vercel.app/#about
+
+# Acknowledgments
+# We appreciate responsible disclosure of security vulnerabilities.
+# Thank you for helping keep InvestEz and our users safe.

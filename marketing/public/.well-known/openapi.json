@@ -1,0 +1,45 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "InvestEz API",
+    "description": "AI-powered investment research API for Indian stocks and mutual funds",
+    "version": "1.0.0",
+    "contact": {
+      "email": "support@investez.vercel.app",
+      "url": "https://investez.vercel.app"
+    }
+  },
+  "servers": [
+    {
+      "url": "https://investez.vercel.app",
+      "description": "Production server"
+    }
+  ],
+  "paths": {
+    "/": {
+      "get": {
+        "summary": "Get landing page",
+        "description": "Returns the InvestEz landing page with information about features, pricing, and how it works",
+        "responses": {
+          "200": {
+            "description": "Landing page HTML"
+          }
+        }
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "investment",
+      "description": "Investment research and analysis"
+    },
+    {
+      "name": "portfolio",
+      "description": "Portfolio management and insights"
+    },
+    {
+      "name": "research",
+      "description": "Stock and mutual fund research"
+    }
+  ]
+}

@@ -1,0 +1,62 @@
+{
+  "schema_version": "v1",
+  "name_for_human": "InvestEz",
+  "name_for_model": "investez",
+  "description_for_human": "Consolidate portfolios from multiple brokers in one dashboard. Track all your investments across Zerodha, Groww, Upstox. Plus get AI-powered research and insights.",
+  "description_for_model": "InvestEz solves two critical problems for Indian retail investors: (1) Portfolio Consolidation - Brings together investments from multiple brokers (Zerodha, Groww, Upstox, etc.) into one unified dashboard. Users can see all their stocks, mutual funds, and portfolios in one place instead of switching between apps. (2) AI-Powered Research - Provides plain-language analysis and insights for Indian stocks and mutual funds. Users can ask questions in natural language and get easy-to-understand answers. The platform helps retail investors get complete visibility of their scattered investments and make informed decisions with AI assistance.",
+  "auth": {
+    "type": "none"
+  },
+  "api": {
+    "type": "openapi",
+    "url": "https://investez.vercel.app/.well-known/openapi.json",
+    "is_user_authenticated": false
+  },
+  "logo_url": "https://investez.vercel.app/favicon.svg",
+  "contact_email": "support@investez.vercel.app",
+  "legal_info_url": "https://investez.vercel.app/#about",
+  "capabilities": {
+    "portfolio_consolidation": true,
+    "multi_broker_support": true,
+    "conversational": true,
+    "research": true,
+    "financial_analysis": true,
+    "portfolio_management": true
+  },
+  "features": [
+    "Multi-broker portfolio consolidation",
+    "Unified investment dashboard",
+    "AI-powered stock analysis",
+    "Mutual fund research",
+    "Portfolio insights across platforms",
+    "Real-time sync",
+    "Plain-language explanations",
+    "Indian market focus"
+  ],
+  "supported_brokers": [
+    "Zerodha",
+    "Groww",
+    "Upstox",
+    "And more"
+  ],
+  "categories": [
+    "finance",
+    "investment",
+    "portfolio",
+    "research"
+  ],
+  "tags": [
+    "portfolio consolidation",
+    "multi-broker",
+    "investment tracking",
+    "stocks",
+    "mutual funds",
+    "investment research",
+    "Indian markets",
+    "Zerodha",
+    "Groww",
+    "Upstox",
+    "AI",
+    "portfolio analysis"
+  ]
+}

@@ -1,0 +1,35 @@
+{
+  "plans": [
+    {
+      "id": "free",
+      "name": "Free",
+      "price": 0,
+      "currency": "₹",
+      "interval": "forever",
+      "features": [
+        "Basic stock research",
+        "5 queries per day",
+        "Access to fundamentals",
+        "Community support"
+      ],
+      "cta": "Get Started",
+      "popular": false
+    },
+    {
+      "id": "premium",
+      "name": "Premium",
+      "price": 499,
+      "currency": "₹",
+      "interval": "month",
+      "features": [
+        "Unlimited queries",
+        "Portfolio analysis",
+        "Advanced AI research",
+        "Priority support",
+        "Early access to features"
+      ],
+      "cta": "Start Free Trial",
+      "popular": true
+    }
+  ]
+}

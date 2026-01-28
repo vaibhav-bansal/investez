@@ -1,0 +1,53 @@
+# humanstxt.org
+
+/* TEAM */
+  Project: InvestEz
+  Site: https://investez.vercel.app
+  Description: Portfolio consolidation + AI research for Indian retail investors
+  Location: India
+
+/* SITE */
+  Standards: HTML5, CSS3, JavaScript, TypeScript
+  Components: React 18, Vite, Tailwind CSS
+  Software: Visual Studio Code, Git
+  Language: English (India)
+
+/* THANKS */
+  React Team - For the amazing framework
+  Tailwind Labs - For Tailwind CSS
+  Vercel - For hosting and deployment
+  OpenAI & Anthropic - For AI capabilities
+  Zerodha, Groww, Upstox - For broker integrations
+
+/* ABOUT */
+  InvestEz solves two critical problems for Indian retail investors:
+
+  1. Portfolio Consolidation - Your investments are scattered across multiple
+     brokers (Zerodha, Groww, Upstox, etc.). InvestEz brings everything together
+     in one unified dashboard. See all your stocks, mutual funds, and portfolios
+     in one place. No more switching between apps.
+
+  2. AI-Powered Research - Investment research is complex and jargon-heavy.
+     InvestEz provides plain-language AI analysis and insights. Ask questions
+     about your investments and get instant, easy-to-understand answers.
+
+  Features:
+  - Multi-broker portfolio consolidation
+  - Unified investment dashboard
+  - Real-time sync across platforms
+  - AI-powered stock and mutual fund analysis
+  - Plain-language investment insights
+  - Conversational interface
+
+/* TECHNOLOGY */
+  Frontend: React 18, TypeScript, Tailwind CSS
+  Build Tool: Vite
+  Icons: Lucide React
+  SEO: React Helmet Async
+  Hosting: Vercel
+  AI: Claude (Anthropic), GPT (OpenAI)
+  Broker APIs: Zerodha Kite, Groww, Upstox
+  Market Data: NSE, BSE, Screener.in, AMFI
+
+/* LAST UPDATED */
+  2026-01-28
