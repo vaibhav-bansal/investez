@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import axios from 'axios'
-import { fetchAuthStatus } from './api/portfolio'
+import { fetchAuthStatus, sendAuthCallback } from './api/portfolio'
 import Dashboard from './pages/Dashboard'
 import AuthPrompt from './components/layout/AuthPrompt'
 import Header from './components/layout/Header'
@@ -20,16 +19,16 @@ export default function App() {
     if (requestToken && status === 'success') {
       setCallbackStatus('processing')
 
-      axios.post('/api/auth/callback', { request_token: requestToken })
+      sendAuthCallback(requestToken)
         .then((response) => {
-          if (response.data.success) {
+          if (response.success) {
             // Clear URL params and refresh auth status
             window.history.replaceState({}, '', '/')
             queryClient.invalidateQueries({ queryKey: ['auth-status'] })
             setCallbackStatus('idle')
           } else {
             setCallbackStatus('error')
-            setCallbackError(response.data.error || 'Authentication failed')
+            setCallbackError(response.error || 'Authentication failed')
           }
         })
         .catch((err) => {

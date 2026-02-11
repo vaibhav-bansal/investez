@@ -5,6 +5,11 @@ const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || '/api',
 })
 
+export async function sendAuthCallback(requestToken: string): Promise<ApiResponse<{ message: string }>> {
+  const { data } = await api.post('/auth/callback', { request_token: requestToken })
+  return data
+}
+
 export async function fetchAuthStatus(): Promise<ApiResponse<{ authenticated: boolean }>> {
   const { data } = await api.get('/auth/status')
   return data
