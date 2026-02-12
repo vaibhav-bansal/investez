@@ -1,5 +1,4 @@
 # Core
-anthropic>=0.40.0
 python-dotenv>=1.0.0
 
 # HTTP & Scraping
@@ -9,9 +8,6 @@ lxml>=5.0.0
 
 # Zerodha Kite Connect
 kiteconnect>=5.0.0
-
-# CLI
-click>=8.1.0
 
 # Web API
 flask>=3.0.0
