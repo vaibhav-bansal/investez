@@ -16,6 +16,7 @@ google_auth_bp = Blueprint("google_auth", __name__)
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
 GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
 FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
+API_BASE_URL = os.getenv("API_BASE_URL")  # Production API server URL
 
 GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth"
 GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"
@@ -23,9 +24,18 @@ GOOGLE_USERINFO_URL = "https://www.googleapis.com/oauth2/v2/userinfo"
 
 
 def get_redirect_uri() -> str:
-    """Get the OAuth redirect URI based on environment."""
-    # Always use frontend URL so cookies work through the Vite proxy
-    return f"{FRONTEND_URL}/api/auth/google/callback"
+    """
+    Get the OAuth redirect URI based on environment.
+
+    - In dev: Uses FRONTEND_URL (localhost:3000) which proxies to Flask backend
+    - In production: Uses API_BASE_URL (actual API server) since frontend is static
+    """
+    if API_BASE_URL:
+        # Production: Use API server URL directly
+        return f"{API_BASE_URL}/api/auth/google/callback"
+    else:
+        # Dev: Use frontend URL which proxies /api/* to backend
+        return f"{FRONTEND_URL}/api/auth/google/callback"
 
 
 @google_auth_bp.route("/login", methods=["GET"])
