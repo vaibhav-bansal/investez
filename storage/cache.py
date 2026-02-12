@@ -3,13 +3,15 @@ from pathlib import Path
 from datetime import datetime, timedelta
 from typing import Optional, Any
 
-from config import FUNDAMENTALS_CACHE_DIR, CACHE_TTL_HOURS
+from config import FUNDAMENTALS_CACHE_DIR, MF_CACHE_DIR, CACHE_TTL_HOURS
 
 
 def get_cache_path(cache_type: str, key: str) -> Path:
     """Get the cache file path for a given type and key."""
     if cache_type == "fundamentals":
         return FUNDAMENTALS_CACHE_DIR / f"{key}.json"
+    elif cache_type in ["mf_nav", "mf_history"]:
+        return MF_CACHE_DIR / f"{key}.json"
     raise ValueError(f"Unknown cache type: {cache_type}")
 
 
@@ -29,14 +31,20 @@ def is_cache_valid(cache_path: Path, ttl_hours: int = CACHE_TTL_HOURS) -> bool:
         return False
 
 
-def get_cached(cache_type: str, key: str) -> Optional[dict]:
+def get_cached(cache_type: str, key: str, max_age_minutes: Optional[int] = None) -> Optional[dict]:
     """
     Get cached data if valid.
     Returns None if cache doesn't exist or is expired.
+
+    Args:
+        cache_type: Type of cache (e.g., "fundamentals", "mf_nav")
+        key: Cache key
+        max_age_minutes: Optional max age in minutes. If None, uses CACHE_TTL_HOURS.
     """
     cache_path = get_cache_path(cache_type, key)
 
-    if not is_cache_valid(cache_path):
+    ttl_hours = (max_age_minutes / 60) if max_age_minutes else CACHE_TTL_HOURS
+    if not is_cache_valid(cache_path, ttl_hours):
         return None
 
     try:
@@ -77,6 +85,8 @@ def clear_expired_cache(cache_type: str) -> int:
     """Clear all expired cache entries. Returns count of removed files."""
     if cache_type == "fundamentals":
         cache_dir = FUNDAMENTALS_CACHE_DIR
+    elif cache_type in ["mf_nav", "mf_history"]:
+        cache_dir = MF_CACHE_DIR
     else:
         raise ValueError(f"Unknown cache type: {cache_type}")
 

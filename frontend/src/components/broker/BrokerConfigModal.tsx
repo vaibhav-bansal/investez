@@ -5,7 +5,9 @@ import {
   saveBrokerCredentials,
   deleteBrokerCredentials,
   fetchLoginUrl,
+  authenticateGroww,
   logout,
+  logoutGroww,
   logoutAllBrokers,
   type Broker,
 } from '../../api/portfolio'
@@ -72,6 +74,16 @@ export default function BrokerConfigModal({
     },
   })
 
+  const logoutGrowwMutation = useMutation({
+    mutationFn: logoutGroww,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['brokers'] })
+      queryClient.invalidateQueries({ queryKey: ['auth-status'] })
+      queryClient.invalidateQueries({ queryKey: ['portfolio'] })
+      window.location.reload()
+    },
+  })
+
   const logoutAllMutation = useMutation({
     mutationFn: logoutAllBrokers,
     onSuccess: () => {
@@ -79,6 +91,18 @@ export default function BrokerConfigModal({
       queryClient.invalidateQueries({ queryKey: ['auth-status'] })
       queryClient.invalidateQueries({ queryKey: ['portfolio'] })
       window.location.reload()
+    },
+  })
+
+  const authenticateGrowwMutation = useMutation({
+    mutationFn: authenticateGroww,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['brokers'] })
+      queryClient.invalidateQueries({ queryKey: ['auth-status'] })
+      setError('')
+    },
+    onError: (err: any) => {
+      setError(err.response?.data?.error || 'Failed to authenticate with Groww')
     },
   })
 
@@ -115,16 +139,27 @@ export default function BrokerConfigModal({
     setError('')
   }
 
-  const handleAuthenticate = async () => {
-    try {
-      const response = await fetchLoginUrl()
-      if (response.success && response.data?.login_url) {
-        window.location.href = response.data.login_url
-      } else {
-        setError(response.error || 'Failed to get login URL')
+  const handleAuthenticate = async (broker: Broker) => {
+    setError('')
+
+    // Different authentication flow for different brokers
+    if (broker.broker_id === 'kite') {
+      // Kite uses OAuth redirect flow
+      try {
+        const response = await fetchLoginUrl()
+        if (response.success && response.data?.login_url) {
+          window.location.href = response.data.login_url
+        } else {
+          setError(response.error || 'Failed to get login URL')
+        }
+      } catch (err: any) {
+        setError(err.response?.data?.error || 'Failed to authenticate with Kite')
       }
-    } catch (err: any) {
-      setError(err.response?.data?.error || 'Failed to authenticate')
+    } else if (broker.broker_id === 'groww') {
+      // Groww uses direct API call (no redirect)
+      authenticateGrowwMutation.mutate()
+    } else {
+      setError(`Authentication not supported for ${broker.name}`)
     }
   }
 
@@ -134,7 +169,11 @@ export default function BrokerConfigModal({
   }
 
   const confirmLogout = () => {
-    logoutMutation.mutate()
+    if (actionBroker?.broker_id === 'groww') {
+      logoutGrowwMutation.mutate()
+    } else {
+      logoutMutation.mutate()
+    }
     setShowLogoutConfirm(false)
     setActionBroker(null)
   }
@@ -179,22 +218,25 @@ export default function BrokerConfigModal({
 
   const getActionButton = (broker: Broker) => {
     if (broker.status === 'authenticated') {
+      const isLoggingOut = broker.broker_id === 'groww' ? logoutGrowwMutation.isPending : logoutMutation.isPending
       return (
         <button
           onClick={() => handleLogout(broker)}
-          disabled={logoutMutation.isPending}
+          disabled={isLoggingOut}
           className="px-4 py-2 text-sm font-medium text-red-600 border border-red-600 rounded-md hover:bg-red-50 disabled:opacity-50"
         >
-          {logoutMutation.isPending ? 'Logging out...' : 'Logout'}
+          {isLoggingOut ? 'Logging out...' : 'Logout'}
         </button>
       )
     } else if (broker.status === 'configured') {
+      const isAuthenticating = broker.broker_id === 'groww' && authenticateGrowwMutation.isPending
       return (
         <button
-          onClick={() => handleAuthenticate()}
-          className="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700"
+          onClick={() => handleAuthenticate(broker)}
+          disabled={isAuthenticating}
+          className="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          Authenticate
+          {isAuthenticating ? 'Authenticating...' : 'Authenticate'}
         </button>
       )
     } else {
@@ -303,6 +345,11 @@ export default function BrokerConfigModal({
             </div>
           ) : (
             <div className="space-y-3">
+              {error && (
+                <div className="p-3 bg-red-50 border border-red-200 rounded-md">
+                  <p className="text-sm text-red-700">{error}</p>
+                </div>
+              )}
               {brokers.length === 0 ? (
                 <p className="text-sm text-gray-500 py-4 text-center">
                   No brokers available

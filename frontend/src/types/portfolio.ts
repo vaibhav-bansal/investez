@@ -12,6 +12,7 @@ export interface Holding {
   day_change: number
   day_change_percent: number
   market_cap_category: string | null
+  broker: string
 }
 
 export interface MFHolding {
@@ -26,7 +27,10 @@ export interface MFHolding {
   invested: number
   pnl: number
   pnl_percent: number
+  day_change: number
+  day_change_percent: number
   market_cap_category: string | null
+  broker: string
 }
 
 export interface PortfolioSummary {

@@ -58,6 +58,9 @@ export default function HoldingsTable({ holdings }: Props) {
             <tr>
               <SortHeader label="Symbol" keyName="symbol" />
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                Broker
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                 Qty
               </th>
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
@@ -73,9 +76,18 @@ export default function HoldingsTable({ holdings }: Props) {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
-            {sorted.map((h) => (
-              <tr key={h.symbol} className="hover:bg-gray-50">
+            {sorted.map((h, index) => (
+              <tr key={`${h.symbol}-${index}`} className="hover:bg-gray-50">
                 <td className="px-4 py-3 font-medium text-gray-900">{h.symbol}</td>
+                <td className="px-4 py-3">
+                  <span className={`px-2 py-1 text-xs font-medium rounded ${
+                    h.broker === 'kite' ? 'bg-blue-100 text-blue-700' :
+                    h.broker === 'groww' ? 'bg-green-100 text-green-700' :
+                    'bg-gray-100 text-gray-700'
+                  }`}>
+                    {h.broker === 'kite' ? 'Kite' : h.broker === 'groww' ? 'Groww' : h.broker === 'multiple' ? 'Multiple' : h.broker}
+                  </span>
+                </td>
                 <td className="px-4 py-3 text-gray-600">{h.quantity}</td>
                 <td className="px-4 py-3 text-gray-600">{formatCurrency(h.avg_price)}</td>
                 <td className="px-4 py-3 text-gray-600">{formatCurrency(h.current_price)}</td>

@@ -3,7 +3,7 @@ Portfolio API endpoints.
 """
 
 from flask import Blueprint, jsonify
-from datetime import datetime
+from datetime import datetime, timezone
 
 from services.portfolio import get_portfolio, get_holdings_only, get_mf_only
 from utils.jwt_auth import require_auth
@@ -16,7 +16,7 @@ def _success_response(data, cached_at: datetime = None):
     return jsonify({
         "success": True,
         "data": data,
-        "cached_at": (cached_at or datetime.now()).isoformat(),
+        "cached_at": (cached_at or datetime.now(timezone.utc)).isoformat(),
     })
 
 

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { Toaster } from 'react-hot-toast'
 import { fetchAuthStatus, sendAuthCallback, googleLogout, fetchCurrentUser } from './api/portfolio'
 import Dashboard from './pages/Dashboard'
 import GoogleLogin from './components/auth/GoogleLogin'
@@ -117,6 +118,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <Toaster position="top-right" />
       {isUserAuthenticated && (
         <Header
           isUserAuthenticated={isUserAuthenticated}

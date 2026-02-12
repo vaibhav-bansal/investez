@@ -103,10 +103,14 @@ def init_db() -> None:
             ON broker_credentials(broker_id)
         """)
 
-        # Seed brokers table with Kite
+        # Seed brokers table with Kite and Groww
         cursor.execute("""
             INSERT OR IGNORE INTO brokers (name, broker_id, oauth_enabled)
             VALUES ('Zerodha Kite', 'kite', 1)
+        """)
+        cursor.execute("""
+            INSERT OR IGNORE INTO brokers (name, broker_id, oauth_enabled)
+            VALUES ('Groww', 'groww', 1)
         """)
 
         conn.commit()

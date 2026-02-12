@@ -10,11 +10,13 @@ BASE_DIR = Path(__file__).parent
 CONVERSATIONS_DIR = BASE_DIR / "conversations"
 CACHE_DIR = BASE_DIR / "cache"
 FUNDAMENTALS_CACHE_DIR = CACHE_DIR / "fundamentals"
+MF_CACHE_DIR = CACHE_DIR / "mf"
 
 # Ensure directories exist
 CONVERSATIONS_DIR.mkdir(exist_ok=True)
 CACHE_DIR.mkdir(exist_ok=True)
 FUNDAMENTALS_CACHE_DIR.mkdir(exist_ok=True)
+MF_CACHE_DIR.mkdir(exist_ok=True)
 
 # API Keys
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")

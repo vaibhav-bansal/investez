@@ -18,6 +18,7 @@ class Holding(BaseModel):
     day_change: float
     day_change_percent: float
     market_cap_category: Optional[str] = None
+    broker: str  # Which broker this holding is from (kite, groww, etc.)
 
 
 class MFHolding(BaseModel):
@@ -33,7 +34,10 @@ class MFHolding(BaseModel):
     invested: float
     pnl: float
     pnl_percent: float
+    day_change: float = 0.0
+    day_change_percent: float = 0.0
     market_cap_category: Optional[str] = None
+    broker: str
 
 
 class PortfolioSummary(BaseModel):

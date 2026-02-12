@@ -128,3 +128,13 @@ export async function deleteBrokerCredentials(
   const { data } = await api.delete(`/brokers/${brokerId}/credentials`)
   return data
 }
+
+export async function authenticateGroww(): Promise<ApiResponse<{ message: string }>> {
+  const { data } = await api.post('/auth/groww/authenticate')
+  return data
+}
+
+export async function logoutGroww(): Promise<ApiResponse<{ message: string }>> {
+  const { data } = await api.post('/auth/groww/logout')
+  return data
+}

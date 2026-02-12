@@ -43,11 +43,13 @@ def create_app() -> Flask:
     from .routes.auth import auth_bp
     from .routes.google_auth import google_auth_bp
     from .routes.brokers import brokers_bp
+    from .routes.groww_portfolio import groww_portfolio_bp
 
     app.register_blueprint(portfolio_bp, url_prefix="/api/portfolio")
     app.register_blueprint(auth_bp, url_prefix="/api/auth")
     app.register_blueprint(google_auth_bp, url_prefix="/api/auth/google")
     app.register_blueprint(brokers_bp, url_prefix="/api")
+    app.register_blueprint(groww_portfolio_bp, url_prefix="/api/groww")
 
     @app.route("/api/health")
     def health():

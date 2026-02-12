@@ -70,6 +70,9 @@ export default function PortfolioSummary({ summary }: Props) {
   const stocksDayChangePercent = summary.stocks_value > 0
     ? (summary.stocks_day_change / summary.stocks_value * 100)
     : 0
+  const mfDayChangePercent = summary.mf_value > 0
+    ? (summary.mf_day_change / summary.mf_value * 100)
+    : 0
 
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -103,7 +106,7 @@ export default function PortfolioSummary({ summary }: Props) {
         value={`${formatCurrency(summary.day_pnl)} (${formatPercent(summary.day_pnl_percent)})`}
         breakdown={[
           { label: 'Stocks', value: `${formatCurrency(summary.stocks_day_change)} (${formatPercent(stocksDayChangePercent)})` },
-          { label: 'Mutual Funds', value: 'N/A' },
+          { label: 'Mutual Funds', value: `${formatCurrency(summary.mf_day_change)} (${formatPercent(mfDayChangePercent)})` },
         ]}
         valueColor={dayColor}
       />

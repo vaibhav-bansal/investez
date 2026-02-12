@@ -1,10 +1,11 @@
 """
-Authentication API endpoints for Kite Connect.
+Authentication API endpoints for Kite Connect and Groww.
 """
 
 import json
 from flask import Blueprint, jsonify, request
 from kiteconnect import KiteConnect
+from growwapi import GrowwAPI
 
 from config import BASE_DIR
 from database.db import get_db
@@ -375,6 +376,150 @@ def logout_all_brokers(user_id: int):
             "success": True,
             "data": {
                 "message": "All broker sessions ended successfully",
+            },
+        })
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e),
+        }), 500
+
+
+# ============================================================================
+# Groww Authentication Routes
+# ============================================================================
+
+def _get_user_groww_credentials(user_id: int) -> tuple[str, str] | None:
+    """
+    Get user's Groww API credentials from database.
+    Returns (api_key, api_secret) or None if not configured.
+    """
+    with get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT bc.api_key, bc.api_secret_encrypted
+            FROM broker_credentials bc
+            JOIN brokers b ON bc.broker_id = b.id
+            WHERE bc.user_id = ? AND b.broker_id = 'groww'
+        """, (user_id,))
+
+        row = cursor.fetchone()
+        if not row:
+            return None
+
+        api_key = row["api_key"]
+        api_secret = decrypt_data(row["api_secret_encrypted"])
+        return (api_key, api_secret)
+
+
+def _save_user_groww_access_token(user_id: int, access_token: str) -> None:
+    """Save user's Groww access token to database."""
+    encrypted_token = encrypt_data(access_token)
+
+    with get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute("""
+            UPDATE broker_credentials
+            SET access_token_encrypted = ?, status = 'authenticated',
+                updated_at = CURRENT_TIMESTAMP
+            WHERE user_id = ? AND broker_id = (
+                SELECT id FROM brokers WHERE broker_id = 'groww'
+            )
+        """, (encrypted_token, user_id))
+        conn.commit()
+
+
+def _get_user_groww_access_token(user_id: int) -> str | None:
+    """Get user's Groww access token from database."""
+    with get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT bc.access_token_encrypted
+            FROM broker_credentials bc
+            JOIN brokers b ON bc.broker_id = b.id
+            WHERE bc.user_id = ? AND b.broker_id = 'groww'
+        """, (user_id,))
+
+        row = cursor.fetchone()
+        if not row or not row["access_token_encrypted"]:
+            return None
+
+        return decrypt_data(row["access_token_encrypted"])
+
+
+def _clear_user_groww_access_token(user_id: int) -> None:
+    """Clear user's Groww access token from database."""
+    with get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute("""
+            UPDATE broker_credentials
+            SET access_token_encrypted = NULL, status = 'configured',
+                updated_at = CURRENT_TIMESTAMP
+            WHERE user_id = ? AND broker_id = (
+                SELECT id FROM brokers WHERE broker_id = 'groww'
+            )
+        """, (user_id,))
+        conn.commit()
+
+
+@auth_bp.route("/groww/authenticate", methods=["POST"])
+@require_auth
+def authenticate_groww(user_id: int):
+    """
+    Authenticate with Groww using stored API credentials.
+    Generates and stores access token.
+    """
+    # Get user's Groww credentials from database
+    credentials = _get_user_groww_credentials(user_id)
+
+    if not credentials:
+        return jsonify({
+            "success": False,
+            "error": "Groww credentials not configured. Please add your API key and secret first.",
+        }), 400
+
+    api_key, api_secret = credentials
+
+    try:
+        # Generate access token using Groww API
+        access_token = GrowwAPI.get_access_token(api_key=api_key, secret=api_secret)
+
+        if not access_token:
+            return jsonify({
+                "success": False,
+                "error": "Failed to generate access token. Please check your credentials.",
+            }), 401
+
+        # Save access token to database
+        _save_user_groww_access_token(user_id, access_token)
+
+        return jsonify({
+            "success": True,
+            "data": {
+                "message": "Groww authentication successful",
+            },
+        })
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": f"Authentication failed: {str(e)}",
+        }), 401
+
+
+@auth_bp.route("/groww/logout", methods=["POST"])
+@require_auth
+def logout_groww(user_id: int):
+    """
+    Logout from Groww and clear Groww session data.
+    """
+    try:
+        # Clear user's Groww access token from database
+        _clear_user_groww_access_token(user_id)
+
+        return jsonify({
+            "success": True,
+            "data": {
+                "message": "Groww session ended successfully",
             },
         })
     except Exception as e:
