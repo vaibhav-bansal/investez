@@ -11,7 +11,7 @@ export async function sendAuthCallback(requestToken: string): Promise<ApiRespons
   return data
 }
 
-export async function fetchAuthStatus(): Promise<ApiResponse<{ authenticated: boolean }>> {
+export async function fetchAuthStatus(): Promise<ApiResponse<{ user_authenticated: boolean; broker_authenticated: boolean }>> {
   const { data } = await api.get('/auth/status')
   return data
 }

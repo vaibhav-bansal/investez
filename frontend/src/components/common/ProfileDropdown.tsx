@@ -6,7 +6,7 @@ import ConfirmDialog from './ConfirmDialog'
 
 interface User {
   id: number
-  google_id: string
+  google_id?: string
   email: string
   name: string
   profile_picture?: string

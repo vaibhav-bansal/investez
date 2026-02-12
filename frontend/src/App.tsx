@@ -12,7 +12,7 @@ export default function App() {
   const [callbackError, setCallbackError] = useState('')
   const [lastUpdated, setLastUpdated] = useState<string | null>(null)
 
-  const handleGoogleLoginSuccess = async (token: string) => {
+  const handleGoogleLoginSuccess = async () => {
     try {
       // Small delay to ensure cookie is set in browser
       await new Promise(resolve => setTimeout(resolve, 100))

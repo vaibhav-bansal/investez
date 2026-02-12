@@ -66,16 +66,6 @@ export default function PortfolioSummary({ summary }: Props) {
     ? (summary.mf_pnl / summary.mf_invested * 100)
     : 0
 
-  const totalValuePercent = summary.total_invested > 0
-    ? ((summary.total_value - summary.total_invested) / summary.total_invested * 100)
-    : 0
-  const stocksValuePercent = summary.stocks_invested > 0
-    ? ((summary.stocks_value - summary.stocks_invested) / summary.stocks_invested * 100)
-    : 0
-  const mfValuePercent = summary.mf_invested > 0
-    ? ((summary.mf_value - summary.mf_invested) / summary.mf_invested * 100)
-    : 0
-
   // Calculate day change percentages
   const stocksDayChangePercent = summary.stocks_value > 0
     ? (summary.stocks_day_change / summary.stocks_value * 100)

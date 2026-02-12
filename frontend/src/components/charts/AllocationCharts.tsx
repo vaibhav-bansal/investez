@@ -84,9 +84,6 @@ function PieChartCard({ title, data, isLoading }: PieChartCardProps) {
               cy="50%"
               outerRadius={80}
               activeIndex={activeIndex !== null ? activeIndex : undefined}
-              activeShape={{
-                outerRadius: 85,
-              }}
               onMouseEnter={(_, index) => setActiveIndex(index)}
               onMouseLeave={() => setActiveIndex(null)}
             >

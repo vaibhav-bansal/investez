@@ -5,7 +5,7 @@ import ProfileDropdown from '../common/ProfileDropdown'
 
 interface User {
   id: number
-  google_id: string
+  google_id?: string
   email: string
   name: string
   profile_picture?: string

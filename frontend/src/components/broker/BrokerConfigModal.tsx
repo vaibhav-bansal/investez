@@ -9,6 +9,7 @@ import {
   logoutAllBrokers,
   type Broker,
 } from '../../api/portfolio'
+import ConfirmDialog from '../common/ConfirmDialog'
 
 interface BrokerConfigModalProps {
   isOpen: boolean
@@ -24,6 +25,12 @@ export default function BrokerConfigModal({
   const [apiKey, setApiKey] = useState('')
   const [apiSecret, setApiSecret] = useState('')
   const [error, setError] = useState('')
+
+  // Confirm dialog states
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
+  const [showLogoutAllConfirm, setShowLogoutAllConfirm] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [actionBroker, setActionBroker] = useState<Broker | null>(null)
 
   const { data: brokersData, isLoading } = useQuery({
     queryKey: ['brokers'],
@@ -108,7 +115,7 @@ export default function BrokerConfigModal({
     setError('')
   }
 
-  const handleAuthenticate = async (broker: Broker) => {
+  const handleAuthenticate = async () => {
     try {
       const response = await fetchLoginUrl()
       if (response.success && response.data?.login_url) {
@@ -122,24 +129,42 @@ export default function BrokerConfigModal({
   }
 
   const handleLogout = (broker: Broker) => {
-    if (confirm(`Are you sure you want to end your session with ${broker.name}?`)) {
-      logoutMutation.mutate()
-    }
+    setActionBroker(broker)
+    setShowLogoutConfirm(true)
+  }
+
+  const confirmLogout = () => {
+    logoutMutation.mutate()
+    setShowLogoutConfirm(false)
+    setActionBroker(null)
   }
 
   const handleLogoutAll = () => {
-    if (confirm('Are you sure you want to logout from all brokers? You will need to authenticate again to access your portfolio.')) {
-      logoutAllMutation.mutate()
-    }
+    setShowLogoutAllConfirm(true)
+  }
+
+  const confirmLogoutAll = () => {
+    logoutAllMutation.mutate()
+    setShowLogoutAllConfirm(false)
   }
 
   const handleDelete = (broker: Broker) => {
-    if (confirm(`Are you sure you want to delete your ${broker.name} credentials? You will need to add them again to reconnect.`)) {
-      deleteMutation.mutate(broker.broker_id)
+    setActionBroker(broker)
+    setShowDeleteConfirm(true)
+  }
+
+  const confirmDelete = () => {
+    if (actionBroker) {
+      deleteMutation.mutate(actionBroker.broker_id)
     }
+    setShowDeleteConfirm(false)
+    setActionBroker(null)
   }
 
   if (!isOpen) return null
+
+  // Check if any confirm dialog is open
+  const isConfirmDialogOpen = showLogoutConfirm || showLogoutAllConfirm || showDeleteConfirm
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -166,7 +191,7 @@ export default function BrokerConfigModal({
     } else if (broker.status === 'configured') {
       return (
         <button
-          onClick={() => handleAuthenticate(broker)}
+          onClick={() => handleAuthenticate()}
           className="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700"
         >
           Authenticate
@@ -185,10 +210,11 @@ export default function BrokerConfigModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="fixed inset-0 bg-black bg-opacity-50" onClick={onClose} />
-
-      <div className="relative bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[80vh] flex flex-col">
+    <>
+      {!isConfirmDialogOpen && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center">
+        <div className="fixed inset-0 bg-black bg-opacity-50" onClick={onClose} />
+        <div className="relative bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[80vh] flex flex-col">
         <div className="flex justify-between items-center p-6 border-b border-gray-200">
           <h2 className="text-xl font-semibold text-gray-900">
             Manage Brokers
@@ -340,7 +366,49 @@ export default function BrokerConfigModal({
             </div>
           )}
         </div>
+        </div>
       </div>
-    </div>
+      )}
+
+      {/* Confirm Dialogs */}
+      <ConfirmDialog
+        isOpen={showLogoutConfirm}
+        title="Logout Broker"
+        message={`Are you sure you want to end your session with ${actionBroker?.name}?`}
+        confirmText="Logout"
+        cancelText="Cancel"
+        onConfirm={confirmLogout}
+        onCancel={() => {
+          setShowLogoutConfirm(false)
+          setActionBroker(null)
+        }}
+        isDestructive={true}
+      />
+
+      <ConfirmDialog
+        isOpen={showLogoutAllConfirm}
+        title="Logout All Brokers"
+        message="Are you sure you want to logout from all brokers? You will need to authenticate again to access your portfolio."
+        confirmText="Logout All"
+        cancelText="Cancel"
+        onConfirm={confirmLogoutAll}
+        onCancel={() => setShowLogoutAllConfirm(false)}
+        isDestructive={true}
+      />
+
+      <ConfirmDialog
+        isOpen={showDeleteConfirm}
+        title="Delete Credentials"
+        message={`Are you sure you want to delete your ${actionBroker?.name} credentials? You will need to add them again to reconnect.`}
+        confirmText="Delete"
+        cancelText="Cancel"
+        onConfirm={confirmDelete}
+        onCancel={() => {
+          setShowDeleteConfirm(false)
+          setActionBroker(null)
+        }}
+        isDestructive={true}
+      />
+    </>
   )
 }
