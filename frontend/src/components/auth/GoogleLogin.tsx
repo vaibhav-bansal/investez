@@ -17,7 +17,12 @@ export default function GoogleLogin({ onSuccess, onError }: GoogleLoginProps) {
 
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
-      if (event.origin !== window.location.origin) {
+      const apiUrl = import.meta.env.VITE_API_URL || '/api'
+      const apiOrigin = apiUrl.startsWith('http')
+        ? new URL(apiUrl).origin
+        : window.location.origin
+
+      if (event.origin !== apiOrigin && event.origin !== window.location.origin) {
         return
       }
 
