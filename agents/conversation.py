@@ -11,7 +11,7 @@ from config import ANTHROPIC_API_KEY, CLAUDE_MODEL
 from models.conversation import Conversation
 
 
-SYSTEM_PROMPT = """You are InvestEasy, a knowledgeable investment research assistant for Indian retail investors.
+SYSTEM_PROMPT = """You are InvestEz, a knowledgeable investment research assistant for Indian retail investors.
 
 Your role is to explain financial concepts, answer follow-up questions, and provide context based on previous conversation.
 

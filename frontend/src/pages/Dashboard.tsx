@@ -4,7 +4,11 @@ import HoldingsTable from '../components/portfolio/HoldingsTable'
 import MFHoldingsTable from '../components/portfolio/MFHoldingsTable'
 import AllocationCharts from '../components/charts/AllocationCharts'
 
-export default function Dashboard() {
+interface DashboardProps {
+  onDataUpdate?: (timestamp: string) => void
+}
+
+export default function Dashboard({ onDataUpdate }: DashboardProps) {
   const { data, isLoading, error } = usePortfolio()
 
   if (isLoading) {
@@ -27,11 +31,20 @@ export default function Dashboard() {
 
   const portfolio = data.data
 
+  // Notify parent about the timestamp
+  if (onDataUpdate && portfolio.fetched_at) {
+    onDataUpdate(portfolio.fetched_at)
+  }
+
   return (
     <div className="space-y-6">
       <PortfolioSummary summary={portfolio.summary} />
 
-      <AllocationCharts allocation={portfolio.allocation} totalValue={portfolio.summary.total_value} />
+      <AllocationCharts
+        allocation={portfolio.allocation}
+        totalValue={portfolio.summary.total_value}
+        isLoading={false}
+      />
 
       <div className="grid grid-cols-1 gap-6">
         <HoldingsTable holdings={portfolio.holdings} />
@@ -39,10 +52,6 @@ export default function Dashboard() {
           <MFHoldingsTable holdings={portfolio.mf_holdings} />
         )}
       </div>
-
-      <p className="text-xs text-gray-400 text-right">
-        Last updated: {new Date(portfolio.fetched_at).toLocaleString()}
-      </p>
     </div>
   )
 }

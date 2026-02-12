@@ -328,7 +328,7 @@ class Orchestrator:
     def _get_help_text(self) -> str:
         """Return help text."""
         return """
-InvestEasy - Your Investment Research Assistant
+InvestEz - Your Investment Research Assistant
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 WHAT YOU CAN ASK:

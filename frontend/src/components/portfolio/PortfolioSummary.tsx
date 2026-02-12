@@ -93,12 +93,11 @@ export default function PortfolioSummary({ summary }: Props) {
       />
       <SummaryCard
         title="Total Value"
-        value={`${formatCurrency(summary.total_value)} (${formatPercent(totalValuePercent)})`}
+        value={formatCurrency(summary.total_value)}
         breakdown={[
-          { label: 'Stocks', value: `${formatCurrency(summary.stocks_value)} (${formatPercent(stocksValuePercent)})` },
-          { label: 'Mutual Funds', value: `${formatCurrency(summary.mf_value)} (${formatPercent(mfValuePercent)})` },
+          { label: 'Stocks', value: formatCurrency(summary.stocks_value) },
+          { label: 'Mutual Funds', value: formatCurrency(summary.mf_value) },
         ]}
-        valueColor={totalValuePercent >= 0 ? 'gain' : 'loss'}
       />
       <SummaryCard
         title="Total P&L"

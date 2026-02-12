@@ -1,4 +1,4 @@
-"""InvestEasy Utilities Package"""
+"""InvestEz Utilities Package"""
 
 from utils.formatting import (
     format_header,

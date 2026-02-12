@@ -1,5 +1,5 @@
 """
-Logging configuration for InvestEasy.
+Logging configuration for InvestEz.
 """
 
 import logging

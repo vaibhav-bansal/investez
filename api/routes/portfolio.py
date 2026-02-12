@@ -6,6 +6,7 @@ from flask import Blueprint, jsonify
 from datetime import datetime
 
 from services.portfolio import get_portfolio, get_holdings_only, get_mf_only
+from utils.jwt_auth import require_auth
 
 portfolio_bp = Blueprint("portfolio", __name__)
 
@@ -28,12 +29,13 @@ def _error_response(message: str, status_code: int = 500):
 
 
 @portfolio_bp.route("/", methods=["GET"])
-def get_full_portfolio():
+@require_auth
+def get_full_portfolio(user_id: int):
     """
     Get complete portfolio with holdings, MF, and allocations.
     """
     try:
-        portfolio = get_portfolio()
+        portfolio = get_portfolio(user_id=user_id)
         if not portfolio:
             return _error_response("Could not fetch portfolio. Check Kite authentication.", 401)
 
@@ -46,12 +48,13 @@ def get_full_portfolio():
 
 
 @portfolio_bp.route("/summary", methods=["GET"])
-def get_summary():
+@require_auth
+def get_summary(user_id: int):
     """
     Get quick portfolio summary (total value, P&L).
     """
     try:
-        portfolio = get_portfolio()
+        portfolio = get_portfolio(user_id=user_id)
         if not portfolio:
             return _error_response("Could not fetch portfolio.", 401)
 
@@ -64,12 +67,13 @@ def get_summary():
 
 
 @portfolio_bp.route("/holdings", methods=["GET"])
-def get_holdings():
+@require_auth
+def get_holdings(user_id: int):
     """
     Get stock holdings only.
     """
     try:
-        holdings = get_holdings_only()
+        holdings = get_holdings_only(user_id=user_id)
         return _success_response(
             [h.model_dump(mode="json") for h in holdings],
         )
@@ -78,12 +82,13 @@ def get_holdings():
 
 
 @portfolio_bp.route("/mf", methods=["GET"])
-def get_mf():
+@require_auth
+def get_mf(user_id: int):
     """
     Get mutual fund holdings only.
     """
     try:
-        mf_holdings = get_mf_only()
+        mf_holdings = get_mf_only(user_id=user_id)
         return _success_response(
             [m.model_dump(mode="json") for m in mf_holdings],
         )
@@ -92,12 +97,13 @@ def get_mf():
 
 
 @portfolio_bp.route("/allocation", methods=["GET"])
-def get_allocation():
+@require_auth
+def get_allocation(user_id: int):
     """
     Get allocation breakdown (sector, market cap, asset type).
     """
     try:
-        portfolio = get_portfolio()
+        portfolio = get_portfolio(user_id=user_id)
         if not portfolio:
             return _error_response("Could not fetch portfolio.", 401)
 

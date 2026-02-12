@@ -1,9 +1,11 @@
+import { useState } from 'react'
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts'
 import type { AllocationBreakdown } from '../../types/portfolio'
 
 interface Props {
   allocation: AllocationBreakdown
   totalValue: number
+  isLoading?: boolean
 }
 
 const COLORS = [
@@ -40,17 +42,38 @@ function formatAmount(amount: number): string {
 interface PieChartCardProps {
   title: string
   data: ChartData[]
+  isLoading?: boolean
 }
 
-function PieChartCard({ title, data }: PieChartCardProps) {
-  if (data.length === 0) {
+function ChartSkeleton() {
+  return (
+    <div className="animate-pulse">
+      <div className="h-64 flex items-center justify-center">
+        <div className="w-48 h-48 rounded-full bg-gray-200"></div>
+      </div>
+      <div className="flex justify-center gap-4 mt-4">
+        <div className="h-4 w-24 bg-gray-200 rounded"></div>
+        <div className="h-4 w-24 bg-gray-200 rounded"></div>
+        <div className="h-4 w-24 bg-gray-200 rounded"></div>
+      </div>
+    </div>
+  )
+}
+
+function PieChartCard({ title, data, isLoading }: PieChartCardProps) {
+  const [activeIndex, setActiveIndex] = useState<number | null>(null)
+
+  if (data.length === 0 && !isLoading) {
     return null
   }
 
   return (
     <div className="bg-white rounded-lg border border-gray-200 p-4">
       <h4 className="font-medium text-gray-900 mb-2">{title}</h4>
-      <div className="h-64">
+      {isLoading ? (
+        <ChartSkeleton />
+      ) : (
+        <div className="h-64 relative">
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
             <Pie
@@ -60,8 +83,12 @@ function PieChartCard({ title, data }: PieChartCardProps) {
               cx="50%"
               cy="50%"
               outerRadius={80}
-              label={({ name, value }) => `${name}: ${value.toFixed(1)}%`}
-              labelLine={false}
+              activeIndex={activeIndex !== null ? activeIndex : undefined}
+              activeShape={{
+                outerRadius: 85,
+              }}
+              onMouseEnter={(_, index) => setActiveIndex(index)}
+              onMouseLeave={() => setActiveIndex(null)}
             >
               {data.map((_, index) => (
                 <Cell key={index} fill={COLORS[index % COLORS.length]} />
@@ -76,22 +103,30 @@ function PieChartCard({ title, data }: PieChartCardProps) {
                 return `${value.toFixed(1)}%`
               }}
             />
-            <Legend />
+            <Legend
+              onMouseEnter={(e) => {
+                const index = data.findIndex(d => d.name === e.value)
+                if (index !== -1) setActiveIndex(index)
+              }}
+              onMouseLeave={() => setActiveIndex(null)}
+              wrapperStyle={{ cursor: 'pointer' }}
+            />
           </PieChart>
         </ResponsiveContainer>
-      </div>
+        </div>
+      )}
     </div>
   )
 }
 
-export default function AllocationCharts({ allocation, totalValue }: Props) {
+export default function AllocationCharts({ allocation, totalValue, isLoading }: Props) {
   const marketCapData = toChartData(allocation.market_cap, totalValue)
   const assetData = toChartData(allocation.asset_type, totalValue)
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <PieChartCard title="By Market Cap" data={marketCapData} />
-      <PieChartCard title="By Asset Type" data={assetData} />
+      <PieChartCard title="By Market Cap" data={marketCapData} isLoading={isLoading} />
+      <PieChartCard title="By Asset Type" data={assetData} isLoading={isLoading} />
     </div>
   )
 }

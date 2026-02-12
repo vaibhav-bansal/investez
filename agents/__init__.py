@@ -1,4 +1,4 @@
-"""InvestEasy Agents Package"""
+"""InvestEz Agents Package"""
 
 from agents.orchestrator import Orchestrator, create_orchestrator
 from agents.stock_research import analyze_stock, format_stock_analysis, compare_stocks

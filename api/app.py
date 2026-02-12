@@ -20,8 +20,11 @@ def create_app() -> Flask:
     import os
     allowed_origins = [
         "http://localhost:3000",
+        "http://127.0.0.1:5000",
         "http://localhost:5173",
         "http://localhost:5174",
+        "https://dashboard-production-b3df.up.railway.app",
+        "https://api-production-9507.up.railway.app",
     ]
 
     # Add Railway frontend domains from environment
@@ -38,9 +41,13 @@ def create_app() -> Flask:
     # Register blueprints
     from .routes.portfolio import portfolio_bp
     from .routes.auth import auth_bp
+    from .routes.google_auth import google_auth_bp
+    from .routes.brokers import brokers_bp
 
     app.register_blueprint(portfolio_bp, url_prefix="/api/portfolio")
     app.register_blueprint(auth_bp, url_prefix="/api/auth")
+    app.register_blueprint(google_auth_bp, url_prefix="/api/auth/google")
+    app.register_blueprint(brokers_bp, url_prefix="/api")
 
     @app.route("/api/health")
     def health():

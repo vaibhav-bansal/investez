@@ -1,16 +1,50 @@
 import { useEffect, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { fetchAuthStatus, sendAuthCallback } from './api/portfolio'
+import { fetchAuthStatus, sendAuthCallback, googleLogout, fetchCurrentUser } from './api/portfolio'
 import Dashboard from './pages/Dashboard'
-import AuthPrompt from './components/layout/AuthPrompt'
+import GoogleLogin from './components/auth/GoogleLogin'
+import BrokerManagementHome from './components/broker/BrokerManagementHome'
 import Header from './components/layout/Header'
 
 export default function App() {
   const queryClient = useQueryClient()
   const [callbackStatus, setCallbackStatus] = useState<'idle' | 'processing' | 'error'>('idle')
   const [callbackError, setCallbackError] = useState('')
+  const [lastUpdated, setLastUpdated] = useState<string | null>(null)
 
-  // Handle OAuth callback
+  const handleGoogleLoginSuccess = async (token: string) => {
+    try {
+      // Small delay to ensure cookie is set in browser
+      await new Promise(resolve => setTimeout(resolve, 100))
+
+      // Invalidate and refetch queries to update UI
+      await queryClient.invalidateQueries({ queryKey: ['auth-status'] })
+      await queryClient.invalidateQueries({ queryKey: ['current-user'] })
+      await queryClient.refetchQueries({ queryKey: ['auth-status'], type: 'active' })
+    } catch (error) {
+      console.error('Failed to update auth state:', error)
+    }
+  }
+
+  const handleGoogleLoginError = (error: string) => {
+    alert(`Login failed: ${error}`)
+  }
+
+  const handleLogout = async () => {
+    try {
+      await googleLogout()
+      queryClient.clear()
+      window.location.reload()
+    } catch (error) {
+      console.error('Logout failed:', error)
+    }
+  }
+
+  const handleDataUpdate = (timestamp: string) => {
+    setLastUpdated(timestamp)
+  }
+
+  // Handle Kite OAuth callback
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
     const requestToken = params.get('request_token')
@@ -22,9 +56,9 @@ export default function App() {
       sendAuthCallback(requestToken)
         .then((response) => {
           if (response.success) {
-            // Clear URL params and refresh auth status
             window.history.replaceState({}, '', '/')
             queryClient.invalidateQueries({ queryKey: ['auth-status'] })
+            queryClient.invalidateQueries({ queryKey: ['brokers'] })
             setCallbackStatus('idle')
           } else {
             setCallbackStatus('error')
@@ -41,6 +75,15 @@ export default function App() {
   const { data: authStatus, isLoading } = useQuery({
     queryKey: ['auth-status'],
     queryFn: fetchAuthStatus,
+  })
+
+  const isUserAuthenticated = authStatus?.data?.user_authenticated ?? false
+
+  // Fetch current user data when user is authenticated
+  const { data: currentUserData } = useQuery({
+    queryKey: ['current-user'],
+    queryFn: fetchCurrentUser,
+    enabled: isUserAuthenticated,
   })
 
   if (callbackStatus === 'processing') {
@@ -70,13 +113,27 @@ export default function App() {
     )
   }
 
-  const isAuthenticated = authStatus?.data?.authenticated ?? false
+  const isBrokerAuthenticated = authStatus?.data?.broker_authenticated ?? false
 
   return (
-    <div className="min-h-screen">
-      <Header />
+    <div className="min-h-screen bg-gray-50">
+      {isUserAuthenticated && (
+        <Header
+          isUserAuthenticated={isUserAuthenticated}
+          isBrokerAuthenticated={isBrokerAuthenticated}
+          onGoogleLogout={handleLogout}
+          lastUpdated={lastUpdated}
+          currentUser={currentUserData?.data}
+        />
+      )}
       <main className="max-w-7xl mx-auto px-4 py-6">
-        {isAuthenticated ? <Dashboard /> : <AuthPrompt />}
+        {!isUserAuthenticated ? (
+          <GoogleLogin onSuccess={handleGoogleLoginSuccess} onError={handleGoogleLoginError} />
+        ) : !isBrokerAuthenticated ? (
+          <BrokerManagementHome />
+        ) : (
+          <Dashboard onDataUpdate={handleDataUpdate} />
+        )}
       </main>
     </div>
   )

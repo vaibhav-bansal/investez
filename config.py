@@ -23,7 +23,7 @@ KITE_API_SECRET = os.getenv("KITE_API_SECRET")
 KITE_ACCESS_TOKEN = os.getenv("KITE_ACCESS_TOKEN")
 
 # Cache settings
-CACHE_TTL_HOURS = 24
+CACHE_TTL_HOURS = 168  # 7 days (fundamentals don't change frequently)
 
 # Screener.in settings
 SCREENER_BASE_URL = "https://www.screener.in"

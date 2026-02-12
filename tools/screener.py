@@ -33,10 +33,8 @@ def _rate_limit():
     _last_request_time = time.time()
 
 
-def _get_page(symbol: str) -> Optional[BeautifulSoup]:
-    """Fetch and parse a Screener.in company page."""
-    _rate_limit()
-
+def _get_page(symbol: str, max_retries: int = 3) -> Optional[BeautifulSoup]:
+    """Fetch and parse a Screener.in company page with retry logic."""
     url = f"{SCREENER_BASE_URL}/company/{symbol}/"
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
@@ -44,13 +42,22 @@ def _get_page(symbol: str) -> Optional[BeautifulSoup]:
         "Accept-Language": "en-US,en;q=0.5",
     }
 
-    try:
-        response = requests.get(url, headers=headers, timeout=10)
-        response.raise_for_status()
-        return BeautifulSoup(response.text, "lxml")
-    except requests.RequestException as e:
-        print(f"Error fetching {url}: {e}")
-        return None
+    for attempt in range(max_retries):
+        try:
+            _rate_limit()
+            response = requests.get(url, headers=headers, timeout=10)
+            response.raise_for_status()
+            return BeautifulSoup(response.text, "lxml")
+        except requests.RequestException as e:
+            is_last_attempt = attempt == max_retries - 1
+            if is_last_attempt:
+                print(f"Error fetching {url} after {max_retries} attempts: {e}")
+                return None
+            else:
+                # Exponential backoff: wait 2^attempt seconds
+                wait_time = 2 ** attempt
+                print(f"Attempt {attempt + 1} failed for {url}, retrying in {wait_time}s...")
+                time.sleep(wait_time)
 
 
 def _parse_number(text: str) -> Optional[float]:
@@ -181,9 +188,10 @@ def get_stock_fundamentals(
     market_cap_category = None
     if market_cap:
         # market_cap is already in crores
-        if market_cap >= 100000:  # 100,000 Cr+ (Large cap)
+        # Using approximate SEBI thresholds based on 2025-2026 market conditions
+        if market_cap >= 50000:  # 50,000 Cr+ (Large cap)
             market_cap_category = "Large Cap"
-        elif market_cap >= 25000:  # 25,000 Cr+ (Mid cap)
+        elif market_cap >= 18000:  # 18,000 Cr+ (Mid cap)
             market_cap_category = "Mid Cap"
         else:
             market_cap_category = "Small Cap"

@@ -140,9 +140,13 @@ def _calculate_allocation(
         mcap = mf.market_cap_category or "Unknown"
         mcap_values[mcap] += mf.value
 
+    # Filter out "Unknown" category and recalculate percentages
+    mcap_values_filtered = {k: v for k, v in mcap_values.items() if k != "Unknown"}
+    total_filtered = sum(mcap_values_filtered.values())
+
     mcap_pct = {
-        k: round(v / total * 100, 2) if total > 0 else 0
-        for k, v in mcap_values.items()
+        k: round(v / total_filtered * 100, 2) if total_filtered > 0 else 0
+        for k, v in mcap_values_filtered.items()
     }
 
     # Asset type allocation
@@ -157,15 +161,18 @@ def _calculate_allocation(
     )
 
 
-def get_portfolio() -> Optional[Portfolio]:
+def get_portfolio(user_id: Optional[int] = None) -> Optional[Portfolio]:
     """
     Fetch and analyze complete portfolio from Kite.
+
+    Args:
+        user_id: User ID to fetch portfolio for. If provided, uses database-stored tokens.
 
     Returns Portfolio with holdings, MF holdings, and allocations.
     """
     # Fetch raw data from Kite
-    raw_holdings = get_holdings()
-    raw_mf = get_mf_holdings()
+    raw_holdings = get_holdings(user_id=user_id)
+    raw_mf = get_mf_holdings(user_id=user_id)
 
     if not raw_holdings and not raw_mf:
         return None
@@ -230,18 +237,18 @@ def get_portfolio() -> Optional[Portfolio]:
     )
 
 
-def get_holdings_only() -> list[Holding]:
+def get_holdings_only(user_id: Optional[int] = None) -> list[Holding]:
     """Get stock holdings without MF data (faster)."""
-    raw_holdings = get_holdings()
+    raw_holdings = get_holdings(user_id=user_id)
     if not raw_holdings:
         return []
 
     return [_enrich_holding(h) for h in raw_holdings]
 
 
-def get_mf_only() -> list[MFHolding]:
+def get_mf_only(user_id: Optional[int] = None) -> list[MFHolding]:
     """Get mutual fund holdings only."""
-    raw_mf = get_mf_holdings()
+    raw_mf = get_mf_holdings(user_id=user_id)
     if not raw_mf:
         return []
 

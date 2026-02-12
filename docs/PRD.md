@@ -1,8 +1,8 @@
-# InvestEasy - Product Requirements Document
+# InvestEz - Product Requirements Document
 
 ## Overview
 
-**Project Name**: InvestEasy
+**Project Name**: InvestEz
 **Version**: 0.1.0
 **Last Updated**: January 2026
 
@@ -361,7 +361,7 @@ Sources: AMFI, Value Research, Screener.in
 ### Storage Format
 
 ```
-/InvestEasy
+/InvestEz
   /conversations
     /2026-01-04_analyzing-reliance-industries.json
     /2026-01-04_comparing-tcs-vs-infosys.json
@@ -414,7 +414,7 @@ Sources: AMFI, Value Research, Screener.in
 ## Project Structure
 
 ```
-InvestEasy/
+InvestEz/
 ├── README.md
 ├── PRD.md
 ├── requirements.txt
@@ -514,7 +514,7 @@ InvestEasy/
 - **Storage**: Local JSON cache files
 - **Structure**:
   ```
-  /InvestEasy
+  /InvestEz
     /cache
       /fundamentals
         /RELIANCE_2026-01-04.json

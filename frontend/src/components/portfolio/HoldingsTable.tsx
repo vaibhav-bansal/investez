@@ -43,7 +43,7 @@ export default function HoldingsTable({ holdings }: Props) {
       onClick={() => handleSort(keyName)}
     >
       {label}
-      {sortKey === keyName && (sortAsc ? ' ^' : ' v')}
+      {sortKey === keyName && (sortAsc ? ' ↑' : ' ↓')}
     </th>
   )
 

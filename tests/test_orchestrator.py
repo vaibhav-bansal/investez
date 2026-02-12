@@ -144,7 +144,7 @@ class TestProcessQuery:
 
     def test_process_help_command(self):
         response, agent, tools = self.orchestrator.process_query("help")
-        assert "InvestEasy" in response
+        assert "InvestEz" in response
         assert "Stock Analysis" in response
         assert agent == "system"
 

@@ -1,4 +1,4 @@
-"""InvestEasy Storage Package"""
+"""InvestEz Storage Package"""
 
 from storage.cache import get_cached, set_cached, invalidate_cache
 from storage.conversation_store import (

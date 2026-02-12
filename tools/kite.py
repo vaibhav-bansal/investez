@@ -64,10 +64,51 @@ def _save_token(token: str) -> None:
         f.write(f"{token}\n{expiry.isoformat()}")
 
 
-def get_kite() -> Optional[KiteConnect]:
-    """Get authenticated Kite instance."""
+def get_kite(user_id: Optional[int] = None) -> Optional[KiteConnect]:
+    """
+    Get authenticated Kite instance.
+
+    Args:
+        user_id: User ID to fetch credentials for. If provided, uses database-stored tokens.
+                 If None, falls back to legacy file-based token.
+    """
     global _kite
 
+    # If user_id provided, use database-stored credentials and token
+    if user_id is not None:
+        from database.db import get_db
+        from utils.crypto import decrypt_data
+
+        # Get user's Kite credentials from database
+        with get_db() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT bc.api_key, bc.access_token_encrypted
+                FROM broker_credentials bc
+                JOIN brokers b ON bc.broker_id = b.id
+                WHERE bc.user_id = ? AND b.broker_id = 'kite'
+            """, (user_id,))
+
+            row = cursor.fetchone()
+            if not row:
+                print(f"Error: No Kite credentials found for user {user_id}")
+                return None
+
+            api_key = row["api_key"]
+            access_token_encrypted = row["access_token_encrypted"]
+
+            if not access_token_encrypted:
+                print(f"Error: Kite not authenticated for user {user_id}")
+                return None
+
+            access_token = decrypt_data(access_token_encrypted)
+
+            # Create Kite instance with user's credentials
+            kite = KiteConnect(api_key=api_key)
+            kite.set_access_token(access_token)
+            return kite
+
+    # Legacy file-based token (backward compatibility)
     if _kite is not None:
         return _kite
 
@@ -289,16 +330,19 @@ def get_multiple_price_history(
     return results
 
 
-def get_holdings() -> list[dict[str, Any]]:
+def get_holdings(user_id: Optional[int] = None) -> list[dict[str, Any]]:
     """
     Get user's stock holdings from Kite.
+
+    Args:
+        user_id: User ID to fetch holdings for. If provided, uses database-stored tokens.
 
     Returns list of holdings with P&L data:
         - tradingsymbol, exchange, isin
         - quantity, average_price, last_price
         - pnl, day_change, day_change_percentage
     """
-    kite = get_kite()
+    kite = get_kite(user_id=user_id)
     if not kite:
         return []
 
@@ -328,16 +372,19 @@ def get_positions() -> dict[str, list[dict[str, Any]]]:
         return {"net": [], "day": []}
 
 
-def get_mf_holdings() -> list[dict[str, Any]]:
+def get_mf_holdings(user_id: Optional[int] = None) -> list[dict[str, Any]]:
     """
     Get user's mutual fund holdings from Kite.
+
+    Args:
+        user_id: User ID to fetch MF holdings for. If provided, uses database-stored tokens.
 
     Returns list of MF holdings with:
         - tradingsymbol, folio, fund
         - quantity (units), average_price, last_price
         - pnl
     """
-    kite = get_kite()
+    kite = get_kite(user_id=user_id)
     if not kite:
         return []
 

@@ -1,5 +1,5 @@
 """
-InvestEasy - CLI Entry Point
+InvestEz - CLI Entry Point
 
 Conversational AI assistant for stock and mutual fund research.
 """
@@ -25,7 +25,7 @@ def print_welcome():
     print("""
 ============================================================
                                                             
-    InvestEasy - Your Investment Research Assistant         
+    InvestEz - Your Investment Research Assistant         
                                                             
     Get plain-language analysis of stocks and mutual funds  
                                                             
@@ -47,7 +47,7 @@ def print_status():
 @click.group(invoke_without_command=True)
 @click.pass_context
 def cli(ctx):
-    """InvestEasy - Conversational stock and mutual fund research."""
+    """InvestEz - Conversational stock and mutual fund research."""
     if ctx.invoked_subcommand is None:
         # Default: start new conversation
         start_conversation()
@@ -100,7 +100,7 @@ def resume(session_id: str):
     if conversation.messages:
         print("\n-- Recent context --")
         for msg in conversation.messages[-4:]:
-            role = "You" if msg.role == "user" else "InvestEasy"
+            role = "You" if msg.role == "user" else "InvestEz"
             content = msg.content[:100] + "..." if len(msg.content) > 100 else msg.content
             print(f"   {role}: {content}")
         print("--------------------\n")
@@ -171,7 +171,7 @@ def run_conversation_loop(conversation):
             print("\r" + " " * 20 + "\r", end="")  # Clear "Thinking..."
             
             # Display response
-            print(f"\nInvestEasy: {response}")
+            print(f"\nInvestEz: {response}")
             
             # Add response to conversation
             conversation.add_assistant_message(response, agent=agent, tools_used=tools)
