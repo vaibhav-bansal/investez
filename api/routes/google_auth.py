@@ -177,12 +177,13 @@ def google_callback():
 
         response = make_response(response_html)
         # Also set as httpOnly cookie for security
+        # SameSite=None is required for cross-domain cookies (dashboard + API on different domains)
         response.set_cookie(
             "session_token",
             jwt_token,
             httponly=True,
-            secure=request.scheme == "https",
-            samesite="Lax",
+            secure=True,  # Required for SameSite=None
+            samesite="None",  # Allow cross-site cookie sending
             max_age=30 * 24 * 60 * 60,  # 30 days
         )
 
@@ -262,8 +263,8 @@ def google_logout():
         "session_token",
         "",
         httponly=True,
-        secure=request.scheme == "https",
-        samesite="Lax",
+        secure=True,
+        samesite="None",  # Match login cookie settings
         max_age=0,  # Expire immediately
     )
 
