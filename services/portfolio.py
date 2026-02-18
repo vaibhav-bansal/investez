@@ -11,8 +11,8 @@ from datetime import datetime, timezone
 from typing import Optional
 from collections import defaultdict
 
-from tools.kite import get_holdings as get_kite_holdings, get_mf_holdings
-from tools.groww import get_holdings as get_groww_holdings
+from tools.kite import get_holdings as get_kite_holdings, get_mf_holdings, KiteTokenExpiredError
+from tools.groww import get_holdings as get_groww_holdings, GrowwTokenExpiredError
 from tools.screener import get_stock_fundamentals
 from tools.mfapi import get_mf_day_change
 from tools.mf_isin_mapper import get_scheme_code_from_fund_name
@@ -25,28 +25,46 @@ from models.portfolio import (
 )
 
 
-def _enrich_holding(raw: dict, broker: str) -> Holding:
-    """Convert raw broker holding to enriched Holding model."""
+def _enrich_holding(raw: dict, broker: str, skip_screener: bool = False) -> Holding:
+    """Convert raw broker holding to enriched Holding model.
+
+    Args:
+        raw: Raw holding data from broker API
+        broker: Broker name (kite, groww, etc.)
+        skip_screener: If True, skip Screener.in API call for market cap
+
+    Returns:
+        Holding with optional fields (current_price, day_change, market_cap_category)
+    """
     symbol = raw.get("tradingsymbol", "") or raw.get("trading_symbol", "")
     quantity = raw.get("quantity", 0)
     avg_price = raw.get("average_price", 0)
-    current_price = raw.get("last_price", 0)
+    current_price = raw.get("last_price")
 
-    value = quantity * current_price
+    # Calculate value and P&L
     invested = quantity * avg_price
-    pnl = raw.get("pnl", value - invested)
-    pnl_percent = (pnl / invested * 100) if invested > 0 else 0
 
-    # Get market cap from Screener (cached)
+    if current_price is not None:
+        value = quantity * current_price
+        pnl = raw.get("pnl", value - invested)
+        pnl_percent = (pnl / invested * 100) if invested > 0 else 0
+    else:
+        # No current price available - can't calculate P&L
+        value = invested  # Fallback for display purposes
+        pnl = None
+        pnl_percent = None
+
+    # Get market cap from Screener (cached) - only if not skipped
     market_cap_category = None
-    try:
-        fundamentals = get_stock_fundamentals(symbol)
-        if fundamentals:
-            market_cap_category = fundamentals.market_cap_category
-        else:
-            print(f"[{broker}] No fundamentals found for {symbol}")
-    except Exception as e:
-        print(f"[{broker}] Failed to fetch market cap for {symbol}: {e}")
+    if not skip_screener:
+        try:
+            fundamentals = get_stock_fundamentals(symbol)
+            if fundamentals:
+                market_cap_category = fundamentals.market_cap_category
+            else:
+                print(f"[{broker}] No fundamentals found for {symbol}")
+        except Exception as e:
+            print(f"[{broker}] Failed to fetch market cap for {symbol}: {e}")
 
     return Holding(
         symbol=symbol,
@@ -57,10 +75,10 @@ def _enrich_holding(raw: dict, broker: str) -> Holding:
         current_price=current_price,
         value=round(value, 2),
         invested=round(invested, 2),
-        pnl=round(pnl, 2),
-        pnl_percent=round(pnl_percent, 2),
-        day_change=raw.get("day_change", 0),
-        day_change_percent=raw.get("day_change_percentage", 0),
+        pnl=round(pnl, 2) if pnl is not None else None,
+        pnl_percent=round(pnl_percent, 2) if pnl_percent is not None else None,
+        day_change=raw.get("day_change"),
+        day_change_percent=raw.get("day_change_percentage"),
         market_cap_category=market_cap_category,
         broker=broker,
     )
@@ -93,8 +111,17 @@ def _parse_mf_market_cap(scheme_name: str) -> str:
     return "Multi Cap"
 
 
-def _process_mf_holding(raw: dict, broker: str) -> MFHolding:
-    """Convert raw Kite MF holding to MFHolding model with day change data."""
+def _process_mf_holding(raw: dict, broker: str, skip_day_change: bool = False) -> MFHolding:
+    """Convert raw Kite MF holding to MFHolding model.
+
+    Args:
+        raw: Raw MF holding data from broker API
+        broker: Broker name (kite, groww, etc.)
+        skip_day_change: If True, skip MFApi.in call for day change
+
+    Returns:
+        MFHolding with optional day_change fields
+    """
     units = raw.get("quantity", 0)
     avg_nav = raw.get("average_price", 0)
     current_nav = raw.get("last_price", 0)
@@ -108,12 +135,11 @@ def _process_mf_holding(raw: dict, broker: str) -> MFHolding:
     scheme_name = raw.get("fund", raw.get("tradingsymbol", ""))
     market_cap_category = _parse_mf_market_cap(scheme_name)
 
-    # Try to get day change from MFApi.in using fund name search
-    isin = raw.get("tradingsymbol", "")
-    day_change = 0.0
-    day_change_percent = 0.0
+    # Try to get day change from MFApi.in using fund name search - only if not skipped
+    day_change = None
+    day_change_percent = None
 
-    if scheme_name:
+    if not skip_day_change and scheme_name:
         try:
             # Search for scheme code using fund name
             scheme_code = get_scheme_code_from_fund_name(scheme_name)
@@ -128,7 +154,7 @@ def _process_mf_holding(raw: dict, broker: str) -> MFHolding:
             print(f"Could not fetch day change for MF {scheme_name}: {e}")
 
     return MFHolding(
-        scheme_code=isin,  # Store ISIN as scheme_code for display
+        scheme_code=raw.get("tradingsymbol", ""),  # Store ISIN as scheme_code for display
         scheme_name=scheme_name,
         fund_house=None,
         folio=raw.get("folio"),
@@ -139,8 +165,8 @@ def _process_mf_holding(raw: dict, broker: str) -> MFHolding:
         invested=round(invested, 2),
         pnl=round(pnl, 2),
         pnl_percent=round(pnl_percent, 2),
-        day_change=round(day_change, 2),
-        day_change_percent=round(day_change_percent, 2),
+        day_change=round(day_change, 2) if day_change is not None else None,
+        day_change_percent=round(day_change_percent, 2) if day_change_percent is not None else None,
         market_cap_category=market_cap_category,
         broker=broker,
     )
@@ -285,35 +311,43 @@ def get_portfolio(user_id: Optional[int] = None) -> Optional[Portfolio]:
 
 
 def get_holdings_only(user_id: Optional[int] = None) -> list[Holding]:
-    """Get stock holdings from all brokers without MF data (faster)."""
+    """Get stock holdings from all brokers without enrichment data (fast).
+
+    Returns holdings with:
+    - current_price: From Kite, None for Groww (requires enrichment)
+    - day_change: From Kite, None for Groww (requires enrichment)
+    - market_cap_category: None for all (requires enrichment)
+    """
     # Fetch from Kite first
     raw_kite_holdings = get_kite_holdings(user_id=user_id)
 
-    # Build price map from Kite holdings
-    price_map = {}
-    if raw_kite_holdings:
-        for h in raw_kite_holdings:
-            symbol = h.get('tradingsymbol', '')
-            last_price = h.get('last_price', 0)
-            if symbol and last_price:
-                price_map[symbol] = last_price
-
-    # Fetch from Groww with price map
-    raw_groww_holdings = get_groww_holdings(user_id=user_id, price_map=price_map)
+    # Don't build price map - Groww quotes will be fetched separately via enrichment
+    # Fetch from Groww WITHOUT fetching individual quotes
+    raw_groww_holdings = get_groww_holdings(
+        user_id=user_id,
+        price_map={},  # Empty map - don't reuse Kite prices
+        fetch_quotes=False  # Don't fetch quotes - will be done via enrichment
+    )
 
     holdings = []
     if raw_kite_holdings:
-        holdings.extend([_enrich_holding(h, "kite") for h in raw_kite_holdings])
+        holdings.extend([_enrich_holding(h, "kite", skip_screener=True) for h in raw_kite_holdings])
     if raw_groww_holdings:
-        holdings.extend([_enrich_holding(h, "groww") for h in raw_groww_holdings])
+        holdings.extend([_enrich_holding(h, "groww", skip_screener=True) for h in raw_groww_holdings])
 
     return holdings
 
 
 def get_mf_only(user_id: Optional[int] = None) -> list[MFHolding]:
-    """Get mutual fund holdings only."""
+    """Get mutual fund holdings without day change enrichment (fast).
+
+    Returns MF holdings with:
+    - day_change: None (requires enrichment from MFApi)
+    - day_change_percent: None (requires enrichment from MFApi)
+    - market_cap_category: Parsed from scheme name (always available)
+    """
     raw_mf = get_mf_holdings(user_id=user_id)
     if not raw_mf:
         return []
 
-    return [_process_mf_holding(m) for m in raw_mf]
+    return [_process_mf_holding(m, "kite", skip_day_change=True) for m in raw_mf]

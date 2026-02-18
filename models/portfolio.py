@@ -10,14 +10,14 @@ class Holding(BaseModel):
     isin: Optional[str] = None
     quantity: int
     avg_price: float
-    current_price: float
-    value: float  # quantity * current_price
+    current_price: Optional[float] = None  # From broker (Kite) or enrichment (Groww quotes)
+    value: float  # quantity * current_price (or avg_price if current_price is None)
     invested: float  # quantity * avg_price
-    pnl: float  # value - invested
-    pnl_percent: float
-    day_change: float
-    day_change_percent: float
-    market_cap_category: Optional[str] = None
+    pnl: Optional[float] = None  # value - invested (None if current_price is not available)
+    pnl_percent: Optional[float] = None  # None if current_price is not available
+    day_change: Optional[float] = None  # From broker (Kite) or enrichment (Groww quotes)
+    day_change_percent: Optional[float] = None  # From broker (Kite) or enrichment (Groww quotes)
+    market_cap_category: Optional[str] = None  # From enrichment (Screener)
     broker: str  # Which broker this holding is from (kite, groww, etc.)
 
 
@@ -34,9 +34,9 @@ class MFHolding(BaseModel):
     invested: float
     pnl: float
     pnl_percent: float
-    day_change: float = 0.0
-    day_change_percent: float = 0.0
-    market_cap_category: Optional[str] = None
+    day_change: Optional[float] = None  # From enrichment (MFApi)
+    day_change_percent: Optional[float] = None  # From enrichment (MFApi)
+    market_cap_category: Optional[str] = None  # Parsed from scheme name
     broker: str
 
 

@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { googleLogout } from '../../api/portfolio'
-import BrokerConfigModal from '../broker/BrokerConfigModal'
 import ConfirmDialog from './ConfirmDialog'
 
 interface User {
@@ -13,14 +12,12 @@ interface User {
 }
 
 interface ProfileDropdownProps {
-  isBrokerAuthenticated: boolean
   onGoogleLogout: () => void
   currentUser?: User
 }
 
-export default function ProfileDropdown({ isBrokerAuthenticated, onGoogleLogout, currentUser }: ProfileDropdownProps) {
+export default function ProfileDropdown({ onGoogleLogout, currentUser }: ProfileDropdownProps) {
   const [isOpen, setIsOpen] = useState(false)
-  const [showBrokersModal, setShowBrokersModal] = useState(false)
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
   const [isLoggingOut, setIsLoggingOut] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
@@ -97,31 +94,6 @@ export default function ProfileDropdown({ isBrokerAuthenticated, onGoogleLogout,
                   </p>
                 </div>
 
-                {isBrokerAuthenticated && (
-                  <button
-                    onClick={() => {
-                      setShowBrokersModal(true)
-                      setIsOpen(false)
-                    }}
-                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
-                  >
-                    <svg
-                      className="w-4 h-4"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M13 10V3L4 14h7v7l9-11h-7z"
-                      />
-                    </svg>
-                    Brokers
-                  </button>
-                )}
-
                 <button
                   onClick={() => {
                     setShowLogoutConfirm(true)
@@ -155,23 +127,16 @@ export default function ProfileDropdown({ isBrokerAuthenticated, onGoogleLogout,
       </div>
 
       {currentUser && (
-        <>
-          <BrokerConfigModal
-            isOpen={showBrokersModal}
-            onClose={() => setShowBrokersModal(false)}
-          />
-
-          <ConfirmDialog
-            isOpen={showLogoutConfirm}
-            title="Logout"
-            message="Are you sure you want to logout? You will need to sign in with Google again to access the application."
-            confirmText={isLoggingOut ? 'Logging out...' : 'Logout'}
-            cancelText="Cancel"
-            isDestructive={true}
-            onConfirm={handleGoogleLogout}
-            onCancel={() => setShowLogoutConfirm(false)}
-          />
-        </>
+        <ConfirmDialog
+          isOpen={showLogoutConfirm}
+          title="Logout"
+          message="Are you sure you want to logout? You will need to sign in with Google again to access the application."
+          confirmText={isLoggingOut ? 'Logging out...' : 'Logout'}
+          cancelText="Cancel"
+          isDestructive={true}
+          onConfirm={handleGoogleLogout}
+          onCancel={() => setShowLogoutConfirm(false)}
+        />
       )}
     </>
   )

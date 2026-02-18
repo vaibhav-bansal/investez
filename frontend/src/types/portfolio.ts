@@ -4,15 +4,15 @@ export interface Holding {
   isin: string | null
   quantity: number
   avg_price: number
-  current_price: number
-  value: number
-  invested: number
-  pnl: number
-  pnl_percent: number
-  day_change: number
-  day_change_percent: number
-  market_cap_category: string | null
-  broker: string
+  current_price: number | null  // From broker (Kite) or enrichment (Groww quotes)
+  value: number  // quantity * current_price (or avg_price if current_price is null)
+  invested: number  // quantity * avg_price
+  pnl: number | null  // value - invested (null if current_price is not available)
+  pnl_percent: number | null  // null if current_price is not available
+  day_change: number | null  // From broker (Kite) or enrichment (Groww quotes)
+  day_change_percent: number | null  // From broker (Kite) or enrichment (Groww quotes)
+  market_cap_category: string | null  // From enrichment (Screener)
+  broker: string  // Which broker this holding is from (kite, groww, etc.)
 }
 
 export interface MFHolding {
@@ -27,9 +27,9 @@ export interface MFHolding {
   invested: number
   pnl: number
   pnl_percent: number
-  day_change: number
-  day_change_percent: number
-  market_cap_category: string | null
+  day_change: number | null  // From enrichment (MFApi)
+  day_change_percent: number | null  // From enrichment (MFApi)
+  market_cap_category: string | null  // Parsed from scheme name
   broker: string
 }
 
@@ -67,7 +67,28 @@ export interface Portfolio {
 
 export interface ApiResponse<T> {
   success: boolean
-  data: T
+  data?: T
   cached_at?: string
   error?: string
+  error_type?: 'token_expired' | string
+}
+
+// Enrichment response types
+export interface QuotesEnrichment {
+  [symbol: string]: {
+    last_price: number
+    day_change: number | null
+    day_change_percent: number | null
+  } | null
+}
+
+export interface MarketCapEnrichment {
+  [symbol: string]: string | null  // market_cap_category or null
+}
+
+export interface MFDayChangeEnrichment {
+  [scheme_code: string]: {
+    day_change: number
+    day_change_percent: number
+  } | null
 }

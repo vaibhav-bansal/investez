@@ -1,8 +1,14 @@
 import { useState } from 'react'
 import type { MFHolding } from '../../types/portfolio'
 
+// Simple skeleton component
+function Skeleton({ className }: { className?: string }) {
+  return <div className={`animate-pulse bg-gray-200 rounded ${className || 'h-4 w-12'}`} />
+}
+
 interface Props {
   holdings: MFHolding[]
+  isLoading?: boolean
 }
 
 type SortKey = 'scheme_name' | 'value' | 'pnl' | 'pnl_percent' | 'day_change_percent'
@@ -15,7 +21,7 @@ function formatCurrency(value: number): string {
   })
 }
 
-export default function MFHoldingsTable({ holdings }: Props) {
+export default function MFHoldingsTable({ holdings, isLoading = false }: Props) {
   const [sortKey, setSortKey] = useState<SortKey>('value')
   const [sortAsc, setSortAsc] = useState(false)
 
@@ -52,27 +58,43 @@ export default function MFHoldingsTable({ holdings }: Props) {
       <div className="px-4 py-3 border-b border-gray-200">
         <h3 className="font-semibold text-gray-900">Mutual Fund Holdings</h3>
       </div>
-      <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <SortHeader label="Scheme Name" keyName="scheme_name" />
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Units
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Avg NAV
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Current NAV
-              </th>
-              <SortHeader label="Value" keyName="value" />
-              <SortHeader label="P&L" keyName="pnl" />
-              <SortHeader label="P&L %" keyName="pnl_percent" />
-              <SortHeader label="Day %" keyName="day_change_percent" />
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-200">
+      {isLoading ? (
+        <div className="p-4 space-y-3">
+          {[...Array(5)].map((_, i) => (
+            <div key={i} className="flex items-center gap-4">
+              <Skeleton className="h-4 w-32" />
+              <Skeleton className="h-4 w-12" />
+              <Skeleton className="h-4 w-16" />
+              <Skeleton className="h-4 w-16" />
+              <Skeleton className="h-4 w-20" />
+              <Skeleton className="h-4 w-20" />
+              <Skeleton className="h-4 w-16" />
+              <Skeleton className="h-4 w-16" />
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <SortHeader label="Scheme Name" keyName="scheme_name" />
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  Units
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  Avg NAV
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  Current NAV
+                </th>
+                <SortHeader label="Value" keyName="value" />
+                <SortHeader label="P&L" keyName="pnl" />
+                <SortHeader label="P&L %" keyName="pnl_percent" />
+                <SortHeader label="Day %" keyName="day_change_percent" />
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200">
             {sorted.map((h) => (
               <tr key={h.scheme_code} className="hover:bg-gray-50">
                 <td className="px-4 py-3 font-medium text-gray-900 max-w-xs truncate">
@@ -88,14 +110,21 @@ export default function MFHoldingsTable({ holdings }: Props) {
                 <td className={`px-4 py-3 ${h.pnl_percent >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                   {h.pnl_percent >= 0 ? '+' : ''}{h.pnl_percent.toFixed(2)}%
                 </td>
-                <td className={`px-4 py-3 ${h.day_change_percent >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                  {h.day_change_percent >= 0 ? '+' : ''}{h.day_change_percent.toFixed(2)}%
+                <td className={`px-4 py-3`}>
+                  {h.day_change_percent === null ? (
+                    <Skeleton className="h-4 w-12" />
+                  ) : (
+                    <span className={h.day_change_percent >= 0 ? 'text-green-600' : 'text-red-600'}>
+                      {h.day_change_percent >= 0 ? '+' : ''}{h.day_change_percent.toFixed(2)}%
+                    </span>
+                  )}
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
+      )}
     </div>
   )
 }

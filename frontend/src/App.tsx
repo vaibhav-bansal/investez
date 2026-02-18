@@ -1,17 +1,18 @@
 import { useEffect, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Toaster } from 'react-hot-toast'
-import { fetchAuthStatus, sendAuthCallback, googleLogout, fetchCurrentUser } from './api/portfolio'
+import { fetchAuthStatus, sendAuthCallback, googleLogout, fetchCurrentUser, fetchLoginUrl } from './api/portfolio'
 import Dashboard from './pages/Dashboard'
+import Connections from './pages/Connections'
 import GoogleLogin from './components/auth/GoogleLogin'
-import BrokerManagementHome from './components/broker/BrokerManagementHome'
 import Header from './components/layout/Header'
 
 export default function App() {
   const queryClient = useQueryClient()
   const [callbackStatus, setCallbackStatus] = useState<'idle' | 'processing' | 'error'>('idle')
   const [callbackError, setCallbackError] = useState('')
-  const [lastUpdated, setLastUpdated] = useState<string | null>(null)
+  const [isRedirecting, setIsRedirecting] = useState(false)
+  const [currentPage, setCurrentPage] = useState<'connections' | 'portfolio'>('connections')
 
   const handleGoogleLoginSuccess = async () => {
     try {
@@ -41,10 +42,6 @@ export default function App() {
     }
   }
 
-  const handleDataUpdate = (timestamp: string) => {
-    setLastUpdated(timestamp)
-  }
-
   // Handle Kite OAuth callback
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
@@ -60,6 +57,8 @@ export default function App() {
             window.history.replaceState({}, '', '/')
             queryClient.invalidateQueries({ queryKey: ['auth-status'] })
             queryClient.invalidateQueries({ queryKey: ['brokers'] })
+            // Clear re-auth flag after successful callback
+            sessionStorage.removeItem('kite_reauth_required')
             setCallbackStatus('idle')
           } else {
             setCallbackStatus('error')
@@ -72,6 +71,36 @@ export default function App() {
         })
     }
   }, [queryClient])
+
+  // Handle automatic re-authentication when token expires
+  useEffect(() => {
+    const checkReauthRequired = async () => {
+      const reauthRequired = sessionStorage.getItem('kite_reauth_required')
+      if (reauthRequired === 'true' && !isRedirecting) {
+        setIsRedirecting(true)
+        try {
+          // Get fresh OAuth login URL (same flow as clicking Authenticate button)
+          const response = await fetchLoginUrl()
+          if (response.success && response.data?.login_url) {
+            // Wait 2 seconds so user can read the message before redirecting
+            await new Promise(resolve => setTimeout(resolve, 2000))
+            // Redirect to Kite OAuth
+            window.location.href = response.data.login_url
+          } else {
+            // If we can't get login URL, clear flag and show error
+            sessionStorage.removeItem('kite_reauth_required')
+            setIsRedirecting(false)
+          }
+        } catch (err) {
+          // Clear flag on error
+          sessionStorage.removeItem('kite_reauth_required')
+          setIsRedirecting(false)
+        }
+      }
+    }
+
+    checkReauthRequired()
+  }, []) // Empty deps - only run once on mount
 
   const { data: authStatus, isLoading } = useQuery({
     queryKey: ['auth-status'],
@@ -95,6 +124,17 @@ export default function App() {
     )
   }
 
+  if (isRedirecting) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-gray-500 mb-2">Your Kite session has expired</div>
+          <div className="text-gray-400">Redirecting to login...</div>
+        </div>
+      </div>
+    )
+  }
+
   if (callbackStatus === 'error') {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -114,27 +154,25 @@ export default function App() {
     )
   }
 
-  const isBrokerAuthenticated = authStatus?.data?.broker_authenticated ?? false
-
   return (
     <div className="min-h-screen bg-gray-50">
       <Toaster position="top-right" />
       {isUserAuthenticated && (
         <Header
           isUserAuthenticated={isUserAuthenticated}
-          isBrokerAuthenticated={isBrokerAuthenticated}
           onGoogleLogout={handleLogout}
-          lastUpdated={lastUpdated}
           currentUser={currentUserData?.data}
+          currentPage={currentPage}
+          onPageChange={setCurrentPage}
         />
       )}
       <main className="max-w-7xl mx-auto px-4 py-6">
         {!isUserAuthenticated ? (
           <GoogleLogin onSuccess={handleGoogleLoginSuccess} onError={handleGoogleLoginError} />
-        ) : !isBrokerAuthenticated ? (
-          <BrokerManagementHome />
+        ) : currentPage === 'connections' ? (
+          <Connections onNavigateToPortfolio={() => setCurrentPage('portfolio')} />
         ) : (
-          <Dashboard onDataUpdate={handleDataUpdate} />
+          <Dashboard onNavigateToConnections={() => setCurrentPage('connections')} />
         )}
       </main>
     </div>

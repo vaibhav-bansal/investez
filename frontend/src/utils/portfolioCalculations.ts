@@ -6,16 +6,19 @@ export function calculateFilteredSummary(
 ): PortfolioSummary {
   const stocks_value = stockHoldings.reduce((sum, h) => sum + h.value, 0)
   const stocks_invested = stockHoldings.reduce((sum, h) => sum + h.invested, 0)
-  const stocks_pnl = stockHoldings.reduce((sum, h) => sum + h.pnl, 0)
+  const stocks_pnl = stockHoldings.reduce((sum, h) => sum + (h.pnl || 0), 0)
   const stocks_day_change = stockHoldings.reduce(
-    (sum, h) => sum + (h.day_change * h.quantity),
+    (sum, h) => sum + ((h.day_change || 0) * h.quantity),
     0
   )
 
   const mf_value = mfHoldings.reduce((sum, m) => sum + m.value, 0)
   const mf_invested = mfHoldings.reduce((sum, m) => sum + m.invested, 0)
   const mf_pnl = mfHoldings.reduce((sum, m) => sum + m.pnl, 0)
-  const mf_day_change = mfHoldings.reduce((sum, m) => sum + m.day_change, 0)
+  const mf_day_change = mfHoldings.reduce(
+    (sum, m) => sum + ((m.day_change || 0) * m.units),
+    0
+  )
 
   const total_value = stocks_value + mf_value
   const total_invested = stocks_invested + mf_invested

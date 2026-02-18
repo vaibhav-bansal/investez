@@ -15,7 +15,7 @@ export default function BrokerFilter({
   onToggle,
 }: BrokerFilterProps) {
   return (
-    <div className="flex items-center gap-4 mb-6">
+    <div className="flex items-center gap-4">
       <span className="text-sm font-medium text-gray-700">Filter by Broker:</span>
       {availableBrokers.map(broker => (
         <label

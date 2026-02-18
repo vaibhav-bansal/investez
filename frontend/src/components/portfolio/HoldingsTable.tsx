@@ -1,8 +1,14 @@
 import { useState } from 'react'
 import type { Holding } from '../../types/portfolio'
 
+// Simple skeleton component
+function Skeleton({ className }: { className?: string }) {
+  return <div className={`animate-pulse bg-gray-200 rounded ${className || 'h-4 w-12'}`} />
+}
+
 interface Props {
   holdings: Holding[]
+  isLoading?: boolean
 }
 
 type SortKey = 'symbol' | 'value' | 'pnl' | 'pnl_percent' | 'day_change_percent'
@@ -15,7 +21,7 @@ function formatCurrency(value: number): string {
   })
 }
 
-export default function HoldingsTable({ holdings }: Props) {
+export default function HoldingsTable({ holdings, isLoading = false }: Props) {
   const [sortKey, setSortKey] = useState<SortKey>('value')
   const [sortAsc, setSortAsc] = useState(false)
 
@@ -52,30 +58,47 @@ export default function HoldingsTable({ holdings }: Props) {
       <div className="px-4 py-3 border-b border-gray-200">
         <h3 className="font-semibold text-gray-900">Stock Holdings</h3>
       </div>
-      <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <SortHeader label="Symbol" keyName="symbol" />
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Broker
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Qty
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Avg Price
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                LTP
-              </th>
-              <SortHeader label="Value" keyName="value" />
-              <SortHeader label="P&L" keyName="pnl" />
-              <SortHeader label="P&L %" keyName="pnl_percent" />
-              <SortHeader label="Day %" keyName="day_change_percent" />
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-200">
+      {isLoading ? (
+        <div className="p-4 space-y-3">
+          {[...Array(5)].map((_, i) => (
+            <div key={i} className="flex items-center gap-4">
+              <Skeleton className="h-4 w-20" />
+              <Skeleton className="h-4 w-16" />
+              <Skeleton className="h-4 w-12" />
+              <Skeleton className="h-4 w-16" />
+              <Skeleton className="h-4 w-16" />
+              <Skeleton className="h-4 w-20" />
+              <Skeleton className="h-4 w-20" />
+              <Skeleton className="h-4 w-16" />
+              <Skeleton className="h-4 w-16" />
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <SortHeader label="Symbol" keyName="symbol" />
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  Broker
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  Qty
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  Avg Price
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  LTP
+                </th>
+                <SortHeader label="Value" keyName="value" />
+                <SortHeader label="P&L" keyName="pnl" />
+                <SortHeader label="P&L %" keyName="pnl_percent" />
+                <SortHeader label="Day %" keyName="day_change_percent" />
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200">
             {sorted.map((h, index) => (
               <tr key={`${h.symbol}-${index}`} className="hover:bg-gray-50">
                 <td className="px-4 py-3 font-medium text-gray-900">{h.symbol}</td>
@@ -90,22 +113,47 @@ export default function HoldingsTable({ holdings }: Props) {
                 </td>
                 <td className="px-4 py-3 text-gray-600">{h.quantity}</td>
                 <td className="px-4 py-3 text-gray-600">{formatCurrency(h.avg_price)}</td>
-                <td className="px-4 py-3 text-gray-600">{formatCurrency(h.current_price)}</td>
+                <td className="px-4 py-3 text-gray-600">
+                  {h.current_price === null ? (
+                    <Skeleton className="h-4 w-16" />
+                  ) : (
+                    formatCurrency(h.current_price)
+                  )}
+                </td>
                 <td className="px-4 py-3 text-gray-900">{formatCurrency(h.value)}</td>
-                <td className={`px-4 py-3 ${h.pnl >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                  {formatCurrency(h.pnl)}
+                <td className={`px-4 py-3`}>
+                  {h.pnl === null ? (
+                    <Skeleton className="h-4 w-16" />
+                  ) : (
+                    <span className={h.pnl >= 0 ? 'text-green-600' : 'text-red-600'}>
+                      {formatCurrency(h.pnl)}
+                    </span>
+                  )}
                 </td>
-                <td className={`px-4 py-3 ${h.pnl_percent >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                  {h.pnl_percent >= 0 ? '+' : ''}{h.pnl_percent.toFixed(2)}%
+                <td className={`px-4 py-3`}>
+                  {h.pnl_percent === null ? (
+                    <Skeleton className="h-4 w-12" />
+                  ) : (
+                    <span className={h.pnl_percent >= 0 ? 'text-green-600' : 'text-red-600'}>
+                      {h.pnl_percent >= 0 ? '+' : ''}{h.pnl_percent.toFixed(2)}%
+                    </span>
+                  )}
                 </td>
-                <td className={`px-4 py-3 ${h.day_change_percent >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                  {h.day_change_percent >= 0 ? '+' : ''}{h.day_change_percent.toFixed(2)}%
+                <td className={`px-4 py-3`}>
+                  {h.day_change_percent === null ? (
+                    <Skeleton className="h-4 w-12" />
+                  ) : (
+                    <span className={h.day_change_percent >= 0 ? 'text-green-600' : 'text-red-600'}>
+                      {h.day_change_percent >= 0 ? '+' : ''}{h.day_change_percent.toFixed(2)}%
+                    </span>
+                  )}
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
+      )}
     </div>
   )
 }

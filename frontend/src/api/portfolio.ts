@@ -1,5 +1,13 @@
 import axios from 'axios'
-import type { ApiResponse, Portfolio } from '../types/portfolio'
+import type {
+  ApiResponse,
+  Portfolio,
+  Holding,
+  MFHolding,
+  QuotesEnrichment,
+  MarketCapEnrichment,
+  MFDayChangeEnrichment
+} from '../types/portfolio'
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || '/api',
@@ -21,29 +29,89 @@ export async function fetchLoginUrl(): Promise<ApiResponse<{ login_url: string }
   return data
 }
 
+// ============================================================================
+// CORE DATA API FUNCTIONS (Fast, broker data only)
+// ============================================================================
+
+export async function fetchHoldings(): Promise<ApiResponse<Holding[]>> {
+  try {
+    const { data } = await api.get('/portfolio/holdings')
+    return data
+  } catch (error: any) {
+    if (error.response?.data) {
+      return error.response.data
+    }
+    throw error
+  }
+}
+
+export async function fetchMFHoldings(): Promise<ApiResponse<MFHolding[]>> {
+  try {
+    const { data } = await api.get('/portfolio/mf/holdings')
+    return data
+  } catch (error: any) {
+    if (error.response?.data) {
+      return error.response.data
+    }
+    throw error
+  }
+}
+
+// ============================================================================
+// ENRICHMENT API FUNCTIONS (Slow, external APIs)
+// ============================================================================
+
+export async function fetchHoldingsQuotes(): Promise<ApiResponse<QuotesEnrichment>> {
+  try {
+    const { data } = await api.get('/portfolio/enriched/holdings/quotes')
+    return data
+  } catch (error: any) {
+    if (error.response?.data) {
+      return error.response.data
+    }
+    throw error
+  }
+}
+
+export async function fetchMarketCapEnrichment(): Promise<ApiResponse<MarketCapEnrichment>> {
+  try {
+    const { data } = await api.get('/portfolio/enriched/holdings/market-cap')
+    return data
+  } catch (error: any) {
+    if (error.response?.data) {
+      return error.response.data
+    }
+    throw error
+  }
+}
+
+export async function fetchMFDayChangeEnrichment(): Promise<ApiResponse<MFDayChangeEnrichment>> {
+  try {
+    const { data } = await api.get('/portfolio/enriched/mf/holdings/day-change')
+    return data
+  } catch (error: any) {
+    if (error.response?.data) {
+      return error.response.data
+    }
+    throw error
+  }
+}
+
+// ============================================================================
+// LEGACY - Kept for backward compatibility, will be removed
+// ============================================================================
+
 export async function fetchPortfolio(): Promise<ApiResponse<Portfolio>> {
-  const { data } = await api.get('/portfolio/')
-  return data
-}
-
-export async function fetchSummary(): Promise<ApiResponse<Portfolio['summary']>> {
-  const { data } = await api.get('/portfolio/summary')
-  return data
-}
-
-export async function fetchHoldings(): Promise<ApiResponse<Portfolio['holdings']>> {
-  const { data } = await api.get('/portfolio/holdings')
-  return data
-}
-
-export async function fetchMFHoldings(): Promise<ApiResponse<Portfolio['mf_holdings']>> {
-  const { data } = await api.get('/portfolio/mf')
-  return data
-}
-
-export async function fetchAllocation(): Promise<ApiResponse<Portfolio['allocation']>> {
-  const { data } = await api.get('/portfolio/allocation')
-  return data
+  try {
+    const { data } = await api.get('/portfolio/')
+    return data
+  } catch (error: any) {
+    // Return error response for token expiry detection
+    if (error.response?.data) {
+      return error.response.data
+    }
+    throw error
+  }
 }
 
 export async function fetchProfile(): Promise<ApiResponse<{
