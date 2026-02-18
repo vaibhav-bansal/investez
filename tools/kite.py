@@ -21,10 +21,16 @@ from typing import Optional
 from pathlib import Path
 
 from kiteconnect import KiteConnect
+from kiteconnect.exceptions import TokenException
 
 from config import KITE_API_KEY, KITE_API_SECRET, BASE_DIR
 from models.stock import StockQuote, PriceHistory
 from typing import Any
+
+
+class KiteTokenExpiredError(Exception):
+    """Raised when Kite access token has expired or is invalid."""
+    pass
 
 
 # Token storage file
@@ -341,6 +347,9 @@ def get_holdings(user_id: Optional[int] = None) -> list[dict[str, Any]]:
         - tradingsymbol, exchange, isin
         - quantity, average_price, last_price
         - pnl, day_change, day_change_percentage
+
+    Raises:
+        KiteTokenExpiredError: If the access token has expired or is invalid.
     """
     kite = get_kite(user_id=user_id)
     if not kite:
@@ -349,6 +358,9 @@ def get_holdings(user_id: Optional[int] = None) -> list[dict[str, Any]]:
     try:
         holdings = kite.holdings()
         return holdings if holdings else []
+    except TokenException as e:
+        # Token expired - raise custom exception for upstream handling
+        raise KiteTokenExpiredError("Kite access token has expired. Please re-authenticate.") from e
     except Exception as e:
         print(f"Error fetching holdings: {e}")
         return []
@@ -383,6 +395,9 @@ def get_mf_holdings(user_id: Optional[int] = None) -> list[dict[str, Any]]:
         - tradingsymbol, folio, fund
         - quantity (units), average_price, last_price
         - pnl
+
+    Raises:
+        KiteTokenExpiredError: If the access token has expired or is invalid.
     """
     kite = get_kite(user_id=user_id)
     if not kite:
@@ -391,6 +406,9 @@ def get_mf_holdings(user_id: Optional[int] = None) -> list[dict[str, Any]]:
     try:
         mf_holdings = kite.mf_holdings()
         return mf_holdings if mf_holdings else []
+    except TokenException as e:
+        # Token expired - raise custom exception for upstream handling
+        raise KiteTokenExpiredError("Kite access token has expired. Please re-authenticate.") from e
     except Exception as e:
         print(f"Error fetching MF holdings: {e}")
         return []

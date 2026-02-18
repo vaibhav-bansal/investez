@@ -392,12 +392,12 @@ def logout_all_brokers(user_id: int):
 def _get_user_groww_credentials(user_id: int) -> tuple[str, str] | None:
     """
     Get user's Groww API credentials from database.
-    Returns (api_key, api_secret) or None if not configured.
+    Returns (api_key, totp_secret) or None if not configured.
     """
     with get_db() as conn:
         cursor = conn.cursor()
         cursor.execute("""
-            SELECT bc.api_key, bc.api_secret_encrypted
+            SELECT bc.api_key, bc.totp_secret_encrypted
             FROM broker_credentials bc
             JOIN brokers b ON bc.broker_id = b.id
             WHERE bc.user_id = ? AND b.broker_id = 'groww'
@@ -408,8 +408,8 @@ def _get_user_groww_credentials(user_id: int) -> tuple[str, str] | None:
             return None
 
         api_key = row["api_key"]
-        api_secret = decrypt_data(row["api_secret_encrypted"])
-        return (api_key, api_secret)
+        totp_secret = decrypt_data(row["totp_secret_encrypted"])
+        return (api_key, totp_secret)
 
 
 def _save_user_groww_access_token(user_id: int, access_token: str) -> None:
@@ -466,7 +466,7 @@ def _clear_user_groww_access_token(user_id: int) -> None:
 @require_auth
 def authenticate_groww(user_id: int):
     """
-    Authenticate with Groww using stored API credentials.
+    Authenticate with Groww using stored TOTP credentials.
     Generates and stores access token.
     """
     # Get user's Groww credentials from database
@@ -475,14 +475,20 @@ def authenticate_groww(user_id: int):
     if not credentials:
         return jsonify({
             "success": False,
-            "error": "Groww credentials not configured. Please add your API key and secret first.",
+            "error": "Groww credentials not configured. Please add your TOTP Token and QR Code Secret first.",
         }), 400
 
-    api_key, api_secret = credentials
+    api_key, totp_secret = credentials
 
     try:
-        # Generate access token using Groww API
-        access_token = GrowwAPI.get_access_token(api_key=api_key, secret=api_secret)
+        import pyotp
+
+        # Generate TOTP using the secret
+        totp_gen = pyotp.TOTP(totp_secret)
+        totp = totp_gen.now()
+
+        # Generate access token using Groww API with TOTP
+        access_token = GrowwAPI.get_access_token(api_key=api_key, totp=totp)
 
         if not access_token:
             return jsonify({

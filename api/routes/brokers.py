@@ -126,11 +126,8 @@ def save_broker_credentials(user_id: int, broker_id: str):
     """
     Save or update broker credentials for user.
 
-    Expects JSON body:
-    {
-        "api_key": "...",
-        "api_secret": "..."
-    }
+    For Kite: expects {api_key, api_secret}
+    For Groww: expects {api_key, api_secret} where api_secret is the TOTP secret
     """
     data = request.get_json()
 
@@ -150,7 +147,7 @@ def save_broker_credentials(user_id: int, broker_id: str):
         }), 400
 
     try:
-        # Encrypt the API secret
+        # Encrypt the secret
         encrypted_secret = encrypt_data(api_secret)
 
         with get_db() as conn:
@@ -176,19 +173,36 @@ def save_broker_credentials(user_id: int, broker_id: str):
 
             if existing:
                 # Update existing credentials
-                cursor.execute("""
-                    UPDATE broker_credentials
-                    SET api_key = ?, api_secret_encrypted = ?,
-                        status = 'configured', updated_at = CURRENT_TIMESTAMP
-                    WHERE user_id = ? AND broker_id = ?
-                """, (api_key, encrypted_secret, user_id, broker["id"]))
+                # For Groww, store in totp_secret_encrypted, for others use api_secret_encrypted
+                if broker_id == 'groww':
+                    cursor.execute("""
+                        UPDATE broker_credentials
+                        SET api_key = ?, totp_secret_encrypted = ?,
+                            status = 'configured', updated_at = CURRENT_TIMESTAMP
+                        WHERE user_id = ? AND broker_id = ?
+                    """, (api_key, encrypted_secret, user_id, broker["id"]))
+                else:
+                    cursor.execute("""
+                        UPDATE broker_credentials
+                        SET api_key = ?, api_secret_encrypted = ?,
+                            status = 'configured', updated_at = CURRENT_TIMESTAMP
+                        WHERE user_id = ? AND broker_id = ?
+                    """, (api_key, encrypted_secret, user_id, broker["id"]))
             else:
                 # Insert new credentials
-                cursor.execute("""
-                    INSERT INTO broker_credentials
-                    (user_id, broker_id, api_key, api_secret_encrypted, status)
-                    VALUES (?, ?, ?, ?, 'configured')
-                """, (user_id, broker["id"], api_key, encrypted_secret))
+                # For Groww, store in totp_secret_encrypted, for others use api_secret_encrypted
+                if broker_id == 'groww':
+                    cursor.execute("""
+                        INSERT INTO broker_credentials
+                        (user_id, broker_id, api_key, totp_secret_encrypted, status)
+                        VALUES (?, ?, ?, ?, 'configured')
+                    """, (user_id, broker["id"], api_key, encrypted_secret))
+                else:
+                    cursor.execute("""
+                        INSERT INTO broker_credentials
+                        (user_id, broker_id, api_key, api_secret_encrypted, status)
+                        VALUES (?, ?, ?, ?, 'configured')
+                    """, (user_id, broker["id"], api_key, encrypted_secret))
 
             conn.commit()
 

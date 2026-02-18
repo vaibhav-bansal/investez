@@ -2,6 +2,7 @@ import type { PortfolioSummary as SummaryType } from '../../types/portfolio'
 
 interface Props {
   summary: SummaryType
+  isLoading?: boolean
 }
 
 function formatCurrency(value: number): string {
@@ -28,9 +29,23 @@ interface CardProps {
   value: string
   breakdown?: { label: string; value: string }[]
   valueColor?: 'gain' | 'loss' | 'neutral'
+  isLoading?: boolean
 }
 
-function SummaryCard({ title, value, breakdown, valueColor = 'neutral' }: CardProps) {
+function SummaryCard({ title, value, breakdown, valueColor = 'neutral', isLoading = false }: CardProps) {
+  if (isLoading) {
+    return (
+      <div className="bg-white rounded-lg border border-gray-200 p-4">
+        <p className="text-sm text-gray-500">{title}</p>
+        <div className="h-8 bg-gray-200 rounded animate-pulse mt-1" />
+        <div className="mt-2 space-y-1">
+          <div className="h-4 bg-gray-200 rounded animate-pulse w-3/4" />
+          <div className="h-4 bg-gray-200 rounded animate-pulse w-1/2" />
+        </div>
+      </div>
+    )
+  }
+
   const colorClass = {
     gain: 'text-green-600',
     loss: 'text-red-600',
@@ -54,7 +69,7 @@ function SummaryCard({ title, value, breakdown, valueColor = 'neutral' }: CardPr
   )
 }
 
-export default function PortfolioSummary({ summary }: Props) {
+export default function PortfolioSummary({ summary, isLoading = false }: Props) {
   const pnlColor = summary.total_pnl >= 0 ? 'gain' : 'loss'
   const dayColor = summary.day_pnl >= 0 ? 'gain' : 'loss'
 
@@ -83,6 +98,7 @@ export default function PortfolioSummary({ summary }: Props) {
           { label: 'Stocks', value: formatCurrency(summary.stocks_invested) },
           { label: 'Mutual Funds', value: formatCurrency(summary.mf_invested) },
         ]}
+        isLoading={isLoading}
       />
       <SummaryCard
         title="Total Value"
@@ -91,6 +107,7 @@ export default function PortfolioSummary({ summary }: Props) {
           { label: 'Stocks', value: formatCurrency(summary.stocks_value) },
           { label: 'Mutual Funds', value: formatCurrency(summary.mf_value) },
         ]}
+        isLoading={isLoading}
       />
       <SummaryCard
         title="Total P&L"
@@ -100,6 +117,7 @@ export default function PortfolioSummary({ summary }: Props) {
           { label: 'Mutual Funds', value: `${formatCurrency(summary.mf_pnl)} (${formatPercent(mfPnlPercent)})` },
         ]}
         valueColor={pnlColor}
+        isLoading={isLoading}
       />
       <SummaryCard
         title="Today's Change"
@@ -109,6 +127,7 @@ export default function PortfolioSummary({ summary }: Props) {
           { label: 'Mutual Funds', value: `${formatCurrency(summary.mf_day_change)} (${formatPercent(mfDayChangePercent)})` },
         ]}
         valueColor={dayColor}
+        isLoading={isLoading}
       />
     </div>
   )
